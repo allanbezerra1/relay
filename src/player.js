@@ -56,6 +56,7 @@ export const player = {
     emit({ volume: audio.volume });
     setPref('voiceVolume', audio.volume);
   },
+  pause() { audio.pause(); },
   stop() {
     audio.pause();
     audio.removeAttribute('src');

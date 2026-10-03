@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useContextMenu } from './ContextMenu.jsx';
 import { EventStatus, EventType, MsgType } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
-import VoicePlayer from './VoicePlayer.jsx';
+import VoicePlayer, { fmt } from './VoicePlayer.jsx';
+import { player } from '../player.js';
 import EmojiPicker from './EmojiPicker.jsx';
 import { useMedia } from '../media.js';
 import { saveSticker, removeSticker, findSaved } from '../stickers.js';
@@ -125,13 +126,91 @@ function ImageBody({ client, content, onOpen, meta, sticker }) {
 
 const hasCaption = (c) => !!(c.filename && c.body && c.body !== c.filename);
 
-function VideoBody({ client, content }) {
+const VIDEO_ICON = {
+  play: 'M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z',
+  pause: 'M7 5h4v14H7zM13 5h4v14h-4z',
+  cam: 'M4 6h11a2 2 0 0 1 2 2v1.5l3.4-2.3A1 1 0 0 1 22 8v8a1 1 0 0 1-1.6.8L17 14.5V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z',
+  sound: 'M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z',
+  muted: 'M3 9v6h4l5 5V4L7 9H3Zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4-2.7-2.7Z',
+  full: 'M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z',
+};
+
+/** WhatsApp/Beeper-style video: poster with a play button and the length; plays inline with a slim bar. */
+function VideoBody({ client, content, meta }) {
   const { url, error } = useMedia(client, content);
-  const poster = useMedia(client, content, { thumb: true }).url;
+  // Only a real thumbnail: without one, useMedia falls back to the video file itself.
+  const hasThumb = !!(content.info?.thumbnail_url || content.info?.thumbnail_file);
+  const thumb = useMedia(client, content, { thumb: true }).url;
+  const poster = hasThumb ? thumb : null;
+  const ref = useRef(null);
+  const [started, setStarted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [dur, setDur] = useState((content.info?.duration || 0) / 1000);
+  const [muted, setMuted] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const on = () => setFullscreen(document.fullscreenElement === ref.current);
+    document.addEventListener('fullscreenchange', on);
+    return () => document.removeEventListener('fullscreenchange', on);
+  }, []);
+
+  const { w, h } = content.info || {};
+  const scale = w && h ? Math.min(1, 340 / w, 380 / h) : 1;
+  const style = w && h ? { width: Math.max(200, Math.round(w * scale)), height: Math.round(h * scale) } : { width: 300, height: 200 };
+
+  const toggle = (e) => {
+    e?.stopPropagation();
+    const v = ref.current;
+    if (!v) return;
+    if (v.paused) { player.pause(); v.play().catch(() => {}); setStarted(true); } else v.pause();
+  };
+  const seek = (e) => {
+    e.stopPropagation();
+    const v = ref.current;
+    const r = e.currentTarget.getBoundingClientRect();
+    if (v && dur) v.currentTime = Math.max(0, Math.min(dur, ((e.clientX - r.left) / r.width) * dur));
+  };
+
   if (error) return <div className="media-error">🎥 Couldn’t load video</div>;
   return (
     <>
-      <div className="media video">{url ? <video src={url} poster={poster || undefined} controls preload="metadata" /> : <div className="media-loading" />}</div>
+      <div className={`media video ${started ? 'started' : ''} ${playing ? 'playing' : ''}`} style={style} onClick={toggle} onDoubleClick={(e) => e.stopPropagation()}>
+        {url ? (
+          <video
+            ref={ref}
+            src={url}
+            poster={poster || undefined}
+            preload="metadata"
+            playsInline
+            controls={fullscreen}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              if (Number.isFinite(v.duration)) setDur(v.duration);
+              if (!poster && v.currentTime === 0) v.currentTime = Math.min(0.1, v.duration || 0.1); // paint the first frame
+            }}
+            onEnded={(e) => { e.currentTarget.currentTime = 0; setStarted(false); setTime(0); }}
+          />
+        ) : <div className="media-loading" />}
+        {!playing && url && <span className="video-play"><Svg d={VIDEO_ICON.play} size={26} /></span>}
+        {!started && dur > 0 && <span className="video-dur"><Svg d={VIDEO_ICON.cam} size={13} />{fmt(dur)}</span>}
+        {started && (
+          <div className="video-bar" onClick={(e) => e.stopPropagation()}>
+            <button onClick={toggle} title={playing ? 'Pause' : 'Play'}><Svg d={playing ? VIDEO_ICON.pause : VIDEO_ICON.play} size={15} /></button>
+            <span className="video-time">{fmt(time)} / {fmt(dur)}</span>
+            <div className="video-seek" onClick={seek}><i style={{ width: `${dur ? (time / dur) * 100 : 0}%` }} /></div>
+            <button onClick={() => { const v = ref.current; if (v) { v.muted = !v.muted; setMuted(v.muted); } }} title={muted ? 'Unmute' : 'Mute'}>
+              <Svg d={muted ? VIDEO_ICON.muted : VIDEO_ICON.sound} size={15} />
+            </button>
+            <button onClick={() => ref.current?.requestFullscreen?.()} title="Full screen"><Svg d={VIDEO_ICON.full} size={14} /></button>
+          </div>
+        )}
+        {!started && !hasCaption(content) && meta}
+      </div>
       <Caption content={content} />
     </>
   );
@@ -164,7 +243,7 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
 
   switch (content.msgtype) {
     case MsgType.Image: return <ImageBody client={client} content={content} onOpen={onOpenImage} meta={meta} />;
-    case MsgType.Video: return <VideoBody client={client} content={content} />;
+    case MsgType.Video: return <VideoBody client={client} content={content} meta={meta} />;
     case MsgType.Audio: return <VoicePlayer client={client} content={content} id={ev.getId()} mine={mine} trailing={meta}
       who={{ name: senderName(room, ev.getSender()), avatar: memberAvatar(client, room, ev.getSender(), 64) }} />;
     case MsgType.File: return <FileBody client={client} content={content} />;
@@ -293,7 +372,7 @@ function Message({
   const failed = ev.status === EventStatus.NOT_SENT;
   const canEdit = mine && !ev.isRedacted() && content.msgtype === MsgType.Text && !ev.status;
   const time = new Date(ev.getTs()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const imageOverlay = isImage && !isSticker && !hasCaption(content) && !replyId;
+  const imageOverlay = ((isImage && !isSticker) || content.msgtype === MsgType.Video) && !hasCaption(content) && !replyId;
   const meta = <Meta time={time} mine={mine} receipt={failed ? null : receipt} edited={edited && !ev.isRedacted()} overlay={imageOverlay} starred={starred} />;
   const copyable = content.msgtype === MsgType.Text || content.msgtype === MsgType.Notice;
 
