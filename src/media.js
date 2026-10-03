@@ -21,6 +21,15 @@ const b64 = {
 
 const blobCache = new Map(); // mxc -> Promise<objectURL>
 
+/** The media of a message as a Blob (decrypted when needed). */
+export async function downloadBlob(client, content) {
+  const mime = content?.info?.mimetype || 'application/octet-stream';
+  if (content?.file) return fetch(await fetchDecrypted(client, content.file, mime)).then((r) => r.blob());
+  const res = await fetch(mediaUrl(client, content?.url));
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  return new Blob([await res.arrayBuffer()], { type: mime });
+}
+
 async function fetchDecrypted(client, file, mimetype) {
   const res = await fetch(mediaUrl(client, file.url));
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
@@ -89,7 +98,7 @@ async function encryptFile(buffer) {
   };
 }
 
-async function imageInfo(file) {
+export async function imageInfo(file) {
   try {
     const bmp = await createImageBitmap(file);
     const info = { w: bmp.width, h: bmp.height };

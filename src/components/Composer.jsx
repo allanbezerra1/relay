@@ -3,6 +3,7 @@ import { MsgType } from 'matrix-js-sdk';
 import { effectiveContent, senderName, previewText, stripReplyFallback } from '../matrix.js';
 import { usePrefs } from '../prefs.js';
 import EmojiPicker from './EmojiPicker.jsx';
+import { sendSticker } from '../stickers.js';
 import NetIcon from './NetIcon.jsx';
 import { uiSound } from '../sounds.js';
 
@@ -230,6 +231,12 @@ const Composer = forwardRef(function Composer(
     }
   };
 
+  const sendStickerNow = async (sticker) => {
+    uiSound('send');
+    try { await sendSticker(client, room.roomId, sticker, replyTo); } catch (err) { console.error('Sticker failed', err); }
+    onSent();
+  };
+
   const startVoice = async () => {
     setVoiceError(null);
     try { await voice.start(); }
@@ -354,7 +361,7 @@ const Composer = forwardRef(function Composer(
             />
             <button className={`icon-in ${emoji ? 'on' : ''}`} onClick={() => setEmoji(!emoji)} title="Emoji"><Icon d={ICON.smile} /></button>
             {!hasText && !editing && <button className="icon-in" onClick={startVoice} title="Record a voice message"><Icon d={ICON.wave} /></button>}
-            {emoji && <EmojiPicker className="for-composer" onPick={insert} onClose={() => setEmoji(false)} />}
+            {emoji && <EmojiPicker className="for-composer" onPick={insert} onClose={() => setEmoji(false)} stickers={{ client, onSend: sendStickerNow }} />}
           </div>
 
           <button className={`round-btn send ${hasText || editing ? 'ready' : ''}`} onClick={send} disabled={!hasText && !editing} title={enterToSend ? 'Send (Enter)' : 'Send (⌘Enter)'}>

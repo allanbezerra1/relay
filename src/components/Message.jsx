@@ -5,6 +5,7 @@ import Avatar from './Avatar.jsx';
 import VoicePlayer from './VoicePlayer.jsx';
 import EmojiPicker from './EmojiPicker.jsx';
 import { useMedia } from '../media.js';
+import { saveSticker, removeSticker, findSaved } from '../stickers.js';
 import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
   senderName, previewText, formatBytes, memberAvatar, cleanName,
@@ -244,7 +245,7 @@ function Message({
   client, room, ev, mine, continued, showSender, avatar, sender, receipt, starred,
   onReact, onReply, onEdit, onDelete, onRetry, onOpenImage, onStar,
   selecting, selected, onToggleSelect, onSelectStart, onForward,
-  replies, onOpenThread, className = '', onOpenDirect, statusLine,
+  replies, onOpenThread, className = '', onOpenDirect, statusLine, onToast,
 }) {
   const [picker, setPicker] = useState(false);
   const bubbleRef = useRef(null);
@@ -305,6 +306,19 @@ function Message({
   };
   const link = (content.body || '').match(URL_RE)?.[0];
 
+  // Save / remove a sticker (or an image as a sticker) in "My stickers".
+  const stickerItem = () => {
+    if (!isImage || ev.status || !client) return null;
+    const saved = findSaved(client, ev);
+    const toast = (t) => onToast?.(t);
+    if (saved) return { label: 'Remove from my stickers', icon: <span>🗑</span>, run: () => removeSticker(client, saved.id).then(() => toast('Removed from your stickers')) };
+    return {
+      label: isSticker ? 'Save sticker' : 'Add to my stickers',
+      icon: <Svg d="M5 3h10l6 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm9 1.6V8a2 2 0 0 0 2 2h3.4L14 4.6Z" size={15} />,
+      run: () => saveSticker(client, ev).then(() => toast('Saved to your stickers'), (err) => toast(`Couldn’t save: ${err.message}`)),
+    };
+  };
+
   const onContextMenu = (e) => {
     if (ev.isRedacted()) return;
     const sel = window.getSelection()?.toString();
@@ -320,6 +334,7 @@ function Message({
       link && { label: 'Copy link', icon: <Svg d={I.copy} size={15} />, run: () => navigator.clipboard.writeText(link) },
       link && { label: 'Open link in browser', icon: <span>↗</span>, run: () => window.open(link, '_blank') },
       isImage && { label: 'Open image', icon: <span>🖼</span>, run: () => mediaEl()?.click() },
+      stickerItem(),
       (isMedia || isAudio || content.msgtype === MsgType.File) && { label: 'Save…', icon: <Svg d={I.download} size={15} />, run: saveMedia },
       !ev.status && onStar && { label: starred ? 'Unstar' : 'Star', icon: <Svg d={starred ? I.star : I.starOutline} size={15} />, run: () => onStar(ev) },
       canEdit && { label: 'Edit', icon: <Svg d={I.edit} size={15} />, run: () => onEdit(ev) },
