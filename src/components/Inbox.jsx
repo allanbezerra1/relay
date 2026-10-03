@@ -16,6 +16,7 @@ import Logo from './Logo.jsx';
 import NetIcon from './NetIcon.jsx';
 import { useContextMenu } from './ContextMenu.jsx';
 import { importWhatsAppFavorites } from '../stickers.js';
+import NewGroupDialog from './NewGroupDialog.jsx';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -134,6 +135,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [query, setQuery] = useState('');
   const [switcher, setSwitcher] = useState(false);
   const [settings, setSettings] = useState(null); // null | section id
+  const [newGroup, setNewGroup] = useState(false);
+  const [inboxToast, setInboxToast] = useState(null);
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
   useEffect(() => {
@@ -480,6 +483,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         setTypeFilter={setTypeFilter}
         onSettings={() => setSettings('general')}
         onDropFiles={dropOnRoom}
+        onNewGroup={isLocal ? () => setNewGroup(true) : null}
       />
 
       {active ? (
@@ -509,6 +513,15 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         <Settings client={client} isLocal={isLocal} section={settings} onSection={setSettings}
           onClose={() => setSettings(null)} onSignOut={onSignOut} />
       )}
+      {newGroup && (
+        <NewGroupDialog client={client} profiles={profiles} onClose={() => setNewGroup(false)}
+          onCreated={(roomId, warning) => {
+            setNewGroup(false);
+            setQuery(''); setFilter('all'); setView('inbox'); openRoom(roomId);
+            if (warning) { setInboxToast(warning); setTimeout(() => setInboxToast(null), 4000); }
+          }} />
+      )}
+      {inboxToast && <div className="toast">{inboxToast}</div>}
     </div>
   );
 }

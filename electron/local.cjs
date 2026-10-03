@@ -1006,6 +1006,19 @@ async function openDirectChat(userId, loginId) {
   return res.dm_room_mxid;
 }
 
+/**
+ * Create a group on a network through its bridge. `participants` are ghost MXIDs (the bridge maps
+ * them back to network IDs); `avatar` is an mxc:// URL on the local server.
+ */
+async function createGroup(bridge, loginId, { name, participants, avatar }) {
+  if (!BRIDGES[bridge]?.v2) throw new Error('Groups can’t be created on this network from Relay yet.');
+  const body = { name: { name }, participants };
+  if (avatar) body.avatar = { url: avatar };
+  const res = await prov(bridge, 'POST', `/create_group/group?login_id=${encodeURIComponent(loginId)}`, body);
+  if (!res.mxid) throw new Error('The bridge didn’t return the new group.');
+  return { roomId: res.mxid, failed: Object.keys(res.failed_participants || {}) };
+}
+
 // ---------- Bridge commands ----------
 
 /** Talk to the local homeserver as you, using the double-puppet appservice token. */
@@ -1058,7 +1071,7 @@ module.exports = {
   HS_URL, MY_ID, BRIDGES,
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
-  favoriteStickers, syncFavoriteStickers, whatsappViewing,
+  favoriteStickers, syncFavoriteStickers, whatsappViewing, createGroup,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
 };

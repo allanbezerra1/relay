@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Logo from './Logo.jsx';
 import NetIcon from './NetIcon.jsx';
 import Login from './Login.jsx';
+import LocalSetup, { useLocalSetup } from './LocalSetup.jsx';
+import { hasLocal } from '../local.js';
 import { usePrefs, setPref, ACCENTS } from '../prefs.js';
 
 const KEY = 'relay.onboarded';
@@ -86,16 +88,38 @@ function MakeItYours({ next, back }) {
   );
 }
 
-/** First-run flow: a few friendly screens, then the normal setup / sign-in. */
+/** Last step: the setup animation; goes in by itself once everything is ready. */
+function Finish({ setup, onLogin }) {
+  const entered = useRef(false);
+  useEffect(() => {
+    if (!setup.session || entered.current) return;
+    entered.current = true;
+    setTimeout(() => onLogin(setup.session), 700); // let "Ready!" show for a moment
+  }, [setup.session]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="ob-step center"><LocalSetup setup={setup} /></div>;
+}
+
+/** Small "setting up…" line under the intro screens while the install runs in the background. */
+function SetupPill({ setup }) {
+  if (setup.error) return <div className="ob-pill error-text">Setup hit a problem, see the last step.</div>;
+  if (setup.session) return <div className="ob-pill">✓ Relay is ready</div>;
+  return <div className="ob-pill"><span className="spinner small" />Setting up in the background…</div>;
+}
+
+/** First run: Relay starts setting itself up right away while you go through a few screens. */
 export default function Onboarding({ onLogin, initialError }) {
-  const [step, setStep] = useState(hasOnboarded() ? 3 : 0);
+  if (!hasLocal()) return <Login onLogin={onLogin} initialError={initialError} />;
+  return <LocalOnboarding onLogin={onLogin} />;
+}
+
+function LocalOnboarding({ onLogin }) {
+  const returning = hasOnboarded();
+  const setup = useLocalSetup();
+  const [step, setStep] = useState(returning ? 3 : 0);
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => Math.max(0, s - 1));
+  useEffect(() => { if (step >= 3) markOnboarded(); }, [step]);
 
-  if (step >= 3) {
-    markOnboarded();
-    return <Login onLogin={onLogin} initialError={initialError} />;
-  }
   return (
     <div className="onboarding">
       <div className="drag-region" />
@@ -103,8 +127,10 @@ export default function Onboarding({ onLogin, initialError }) {
         {step === 0 && <Welcome next={next} />}
         {step === 1 && <HowItWorks next={next} back={back} />}
         {step === 2 && <MakeItYours next={next} back={back} />}
+        {step === 3 && <Finish setup={setup} onLogin={onLogin} />}
       </div>
-      <Dots step={step} total={4} />
+      {step < 3 && <SetupPill setup={setup} />}
+      {!returning && <Dots step={step} total={4} />}
     </div>
   );
 }

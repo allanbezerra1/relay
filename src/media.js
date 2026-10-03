@@ -21,6 +21,19 @@ const b64 = {
 
 const blobCache = new Map(); // mxc -> Promise<objectURL>
 
+/** Copy an image (blob: or http URL) to the clipboard as PNG, which every app can paste. */
+export async function copyImage(url) {
+  const blob = await (await fetch(url)).blob();
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  canvas.getContext('2d').drawImage(bmp, 0, 0);
+  bmp.close();
+  const png = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+}
+
 /** The media of a message as a Blob (decrypted when needed). */
 export async function downloadBlob(client, content) {
   const mime = content?.info?.mimetype || 'application/octet-stream';

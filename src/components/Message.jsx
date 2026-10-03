@@ -5,7 +5,7 @@ import Avatar from './Avatar.jsx';
 import VoicePlayer, { fmt } from './VoicePlayer.jsx';
 import { player } from '../player.js';
 import EmojiPicker from './EmojiPicker.jsx';
-import { useMedia } from '../media.js';
+import { useMedia, copyImage } from '../media.js';
 import { saveSticker, removeSticker, findSaved } from '../stickers.js';
 import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
@@ -419,6 +419,7 @@ function Message({
       link && { label: 'Copy link', icon: <Svg d={I.copy} size={15} />, run: () => navigator.clipboard.writeText(link) },
       link && { label: 'Open link in browser', icon: <span>↗</span>, run: () => window.open(link, '_blank') },
       isImage && { label: 'Open image', icon: <span>🖼</span>, run: () => mediaEl()?.click() },
+      isImage && { label: 'Copy image', icon: <Svg d={I.copy} size={15} />, run: () => { const u = mediaUrl(); if (u) copyImage(u).then(() => onToast?.('Image copied'), (err) => onToast?.(`Couldn’t copy: ${err.message}`)); } },
       stickerItem(),
       (isMedia || isAudio || content.msgtype === MsgType.File) && { label: 'Save…', icon: <Svg d={I.download} size={15} />, run: saveMedia },
       !ev.status && onStar && { label: starred ? 'Unstar' : 'Star', icon: <Svg d={starred ? I.star : I.starOutline} size={15} />, run: () => onStar(ev) },

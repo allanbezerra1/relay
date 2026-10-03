@@ -1536,3 +1536,62 @@ body { background: var(--panel); }
 }
 .notif-blocked span { flex: 1; line-height: 1.4; }
 .notif-blocked button { white-space: nowrap; }
+
+/* ---- v18: new group ---- */
+.dialog.new-group { width: min(460px, calc(100vw - 32px)); }
+.ng-accounts { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.ng-account {
+  flex: 1; min-width: 150px; display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; text-align: left;
+  padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: none; color: var(--text);
+}
+.ng-account > :first-child { grid-row: span 2; }
+.ng-account span { font-size: 13px; font-weight: 600; }
+.ng-account small { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ng-account.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.ng-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.ng-photo {
+  width: 56px; height: 56px; border-radius: 50%; border: 1.5px dashed var(--line); background: var(--panel-2); color: var(--text-3);
+  display: grid; place-items: center; padding: 0; overflow: hidden; flex-shrink: 0;
+}
+.ng-photo:hover { color: var(--text); border-color: var(--text-3); }
+.ng-photo img { width: 100%; height: 100%; object-fit: cover; }
+.ng-name { flex: 1; font-size: 15px; padding: 10px 12px; }
+.ng-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; max-height: 84px; overflow-y: auto; }
+.ng-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; border-radius: 14px; border: 0; font-size: 12.5px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text);
+}
+.ng-chip span { font-size: 9px; opacity: 0.6; }
+.ob-pill {
+  position: absolute; left: 50%; bottom: 58px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-3); white-space: nowrap;
+}
+.ob-step .setup { text-align: left; }
+.ob-step .setup h2 { margin-top: 0; }
+
+/* ---- v19: setup animation ---- */
+.setup-anim { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; width: min(440px, 100%); }
+.setup-anim h2 { margin: 6px 0 0; font-size: 22px; }
+.setup-anim .error { width: 100%; text-align: left; }
+.sa-stage { position: relative; width: 280px; height: 280px; display: grid; place-items: center; margin-bottom: 18px; }
+.sa-logo { animation: sa-breathe 2.4s ease-in-out infinite; filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--accent) 45%, transparent)); }
+@property --sa { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+.sa-orbit { position: absolute; inset: 0; animation: sa-angle 16s linear infinite; }
+.sa-orbit > span {
+  --at: calc(var(--sa) + 360deg / var(--n) * var(--i));
+  position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; display: block;
+  transform: rotate(var(--at)) translateY(-104px) rotate(calc(-1 * var(--at)));
+}
+.sa-text { animation: sa-fade 0.4s ease-out; }
+.sa-bar { width: 220px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; margin-top: 6px; }
+.sa-bar i { display: block; height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.8s ease; position: relative; overflow: hidden; }
+.sa-bar i::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); animation: sa-shine 1.4s ease-in-out infinite;
+}
+@keyframes sa-angle { to { --sa: 360deg; } }
+@keyframes sa-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes sa-fade { from { opacity: 0; transform: translateY(4px); } }
+@keyframes sa-shine { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .sa-orbit, .sa-logo, .sa-bar i::after { animation: none; } }
+.new-group .fw-search { width: 100%; box-sizing: border-box; }

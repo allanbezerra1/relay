@@ -8,6 +8,7 @@ import { roomAvatar, formatTime, memberAvatar, senderName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
 
 const ICONS = {
+  newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
   select: 'M3 5h2V3a2 2 0 0 0-2 2Zm0 8h2v-2H3v2Zm4 8h2v-2H7v2ZM3 9h2V7H3v2Zm10-6h-2v2h2V3Zm6 0v2h2a2 2 0 0 0-2-2ZM5 21v-2H3a2 2 0 0 0 2 2Zm-2-4h2v-2H3v2ZM9 3H7v2h2V3Zm2 18h2v-2h-2v2Zm8-8h2v-2h-2v2Zm0 8a2 2 0 0 0 2-2h-2v2Zm0-12h2V7h-2v2Zm0 8h2v-2h-2v2Zm-4 4h2v-2h-2v2Zm0-16h2V3h-2v2ZM7 17h10V7H7v10Zm2-8h6v6H9V9Z',
   read: 'M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7Zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41ZM.41 13.41 6 19l1.41-1.41L1.83 12 .41 13.41Z',
   archive: 'M20.54 5.23 19.15 3.55A1.45 1.45 0 0 0 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23A1.98 1.98 0 0 0 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.46-1.27ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.12 5l.81-1h12l.94 1H5.12Z',
@@ -27,7 +28,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup,
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -115,6 +116,7 @@ export default function RoomList({
         <div className="sidebar-title">
           <h2>{view === 'archive' ? 'Archive' : filterName}</h2>
           <div className="title-tools">
+            {onNewGroup && <button className="icon-btn" title="New group" onClick={onNewGroup}><Ico d={ICONS.newGroup} /></button>}
             <button className={`icon-btn ${showFilters || filtersActive ? 'on' : ''}`} title="Filters" onClick={() => setShowFilters(!showFilters)}><Ico d={ICONS.filter} /></button>
             <button className={`icon-btn ${showSearch || query ? 'on' : ''}`} title="Search (⌘F)" onClick={() => { setShowSearch(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Ico d={ICONS.search} /></button>
             <button className={`icon-btn ${selecting ? 'on' : ''}`} title="Select chats (⌘-click also works)"
