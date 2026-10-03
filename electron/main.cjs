@@ -171,10 +171,57 @@ ipcMain.handle('session:clear', () => {
 
 ipcMain.handle('app:focused', () => !!win && win.isFocused());
 
+// Shown notifications, per chat. Electron removes a notification from Notification Center when
+// its object is garbage-collected, so keep them until the chat is opened (then clear them, like
+// WhatsApp does) or macOS closes them.
+const shownNotifications = new Map(); // roomId -> Set<Notification>
+let notificationsBlocked = false;
+ipcMain.handle('notify:blocked', () => notificationsBlocked);
+ipcMain.on('notify:openSettings', () => {
+  shell.openExternal('x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=dev.relay.desktop');
+});
+ipcMain.on('notify:test', () => {
+  const n = new Notification({ title: 'Relay', body: 'Notifications are on ✅' });
+  n.on('failed', () => { notificationsBlocked = true; });
+  n.on('show', () => { notificationsBlocked = false; });
+  n.show();
+});
+const MAX_KEPT = 200;
+
+function forgetNotification(roomId, n) {
+  const set = shownNotifications.get(roomId);
+  if (!set) return;
+  set.delete(n);
+  if (!set.size) shownNotifications.delete(roomId);
+}
+
+ipcMain.on('notify:clear', (_e, roomId) => {
+  for (const n of shownNotifications.get(roomId) || []) n.close();
+  shownNotifications.delete(roomId);
+});
+
 ipcMain.on('notify', (_e, { title, body, roomId, silent }) => {
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body, silent: !!silent });
+  if (!shownNotifications.has(roomId)) shownNotifications.set(roomId, new Set());
+  shownNotifications.get(roomId).add(n);
+  let kept = 0;
+  for (const set of shownNotifications.values()) kept += set.size;
+  if (kept > MAX_KEPT) {
+    const [oldRoom, oldSet] = shownNotifications.entries().next().value;
+    const oldest = oldSet.values().next().value;
+    forgetNotification(oldRoom, oldest);
+  }
+  n.on('close', () => forgetNotification(roomId, n));
+  n.on('failed', (_ev, err) => {
+    console.error('Notification failed:', err);
+    forgetNotification(roomId, n);
+    // "Notifications are not allowed for this application" (UNErrorDomain 1): turned off in System Settings.
+    if (/not allowed|UNErrorDomain.*\b1\b/i.test(String(err))) notificationsBlocked = true;
+  });
+  n.on('show', () => { notificationsBlocked = false; });
   n.on('click', () => {
+    forgetNotification(roomId, n);
     if (!win) return;
     if (win.isMinimized()) win.restore();
     if (process.platform === 'darwin') app.show();

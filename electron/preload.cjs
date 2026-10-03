@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('relay', {
   clearSession: () => ipcRenderer.invoke('session:clear'),
   isFocused: () => ipcRenderer.invoke('app:focused'),
   notify: (opts) => ipcRenderer.send('notify', opts),
+  clearNotifications: (roomId) => ipcRenderer.send('notify:clear', roomId),
+  notificationsBlocked: () => ipcRenderer.invoke('notify:blocked'),
+  openNotificationSettings: () => ipcRenderer.send('notify:openSettings'),
+  testNotification: () => ipcRenderer.send('notify:test'),
   setBadge: (count) => ipcRenderer.send('badge', count),
   onFocusChange: (cb) => {
     const fn = (_e, focused) => cb(focused);

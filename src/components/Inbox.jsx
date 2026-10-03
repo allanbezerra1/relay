@@ -366,6 +366,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       }
     },
     markRead: async (r) => {
+      window.relay.clearNotifications?.(r.id);
       const last = r.room.getLiveTimeline().getEvents().at(-1);
       if (last) await client.sendReadReceipt(last, receiptType());
       if (r.markedUnread) await client.setRoomAccountData(r.id, 'm.marked_unread', { unread: false });

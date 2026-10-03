@@ -110,6 +110,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   // ----- Read receipts -----
   const lastEvent = timeline.getEvents().at(-1);
   useEffect(() => {
+    if (focused) window.relay.clearNotifications?.(room.roomId); // you're looking at it now
     if (!focused || !lastEvent || lastEvent.status) return;
     if (room.hasUserReadEvent(me, lastEvent.getId()) && !info.unread && !info.markedUnread) return;
     client.sendReadReceipt(lastEvent, actions.receiptType()).catch(() => {});

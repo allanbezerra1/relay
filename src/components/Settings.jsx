@@ -109,11 +109,37 @@ function General({ client, isLocal }) {
   );
 }
 
+/** Warns when macOS is blocking Relay's notifications (they're off in System Settings). */
+function NotificationCheck() {
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    let t;
+    const check = () => window.relay.notificationsBlocked?.().then(setBlocked);
+    check();
+    // Back from System Settings: try again (a test notification confirms it's fixed).
+    const onFocus = () => window.relay.notificationsBlocked?.().then((b) => {
+      if (!b) return;
+      window.relay.testNotification?.();
+      t = setTimeout(check, 1500);
+    });
+    window.addEventListener('focus', onFocus);
+    return () => { clearTimeout(t); window.removeEventListener('focus', onFocus); };
+  }, []);
+  if (!blocked) return null;
+  return (
+    <div className="notif-blocked">
+      <span>macOS is blocking Relay’s notifications. Turn on <b>Allow notifications</b> for Relay in System Settings.</span>
+      <button className="primary" onClick={() => window.relay.openNotificationSettings?.()}>Open System Settings</button>
+    </div>
+  );
+}
+
 function Notifications() {
   const p = usePrefs();
   return (
     <>
       <h2 className="pane-title">Notifications</h2>
+      <NotificationCheck />
       <Group>
         <Toggle label="Show notifications" hint="macOS may also need permission in System Settings → Notifications → Relay." checked={p.notifications} onChange={(v) => setPref('notifications', v)} />
         <Toggle label="Show message text" hint="Turn off to only show who wrote." checked={p.notifPreview} disabled={!p.notifications} onChange={(v) => setPref('notifPreview', v)} />

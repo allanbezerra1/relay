@@ -27,6 +27,27 @@ const run = (cmd, args) => new Promise((res, rej) => execFile(cmd, args, (err, o
 /** The running Relay.app, e.g. /Applications/Relay.app. */
 const appBundle = () => path.resolve(process.execPath, '..', '..', '..');
 
+/**
+ * macOS only lets apps signed with an Apple certificate post notifications, and the public builds
+ * are ad-hoc signed (so nobody's name or email ships in them). If this Mac has a Developer ID or
+ * Apple Development identity, sign the update with it locally, the same way a local build would be.
+ */
+async function signLocally(bundle) {
+  let out = '';
+  try { out = await run('/usr/bin/security', ['find-identity', '-v', '-p', 'codesigning']); } catch { return false; }
+  const ids = [...out.matchAll(/\b([0-9A-F]{40}) "([^"]+)"/g)].map((m) => ({ hash: m[1], name: m[2] }));
+  const pick = ids.find((i) => i.name.startsWith('Developer ID Application')) || ids.find((i) => i.name.startsWith('Apple Development'));
+  if (!pick) return false;
+  try {
+    await run('/usr/bin/codesign', ['--force', '--deep', '--timestamp=none', '--sign', pick.hash, bundle]);
+    await run('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle]);
+    return true;
+  } catch (err) {
+    console.error('Local signing failed, keeping the ad-hoc signature:', err.message);
+    return false;
+  }
+}
+
 function newer(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
   for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
@@ -98,6 +119,7 @@ async function check({ manual = false } = {}) {
       const ver = await run('/usr/bin/plutil', ['-extract', 'CFBundleShortVersionString', 'raw', plist]);
       if (id !== BUNDLE_ID || ver !== version) throw new Error('The downloaded app isn’t the expected Relay build.');
       await run('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle]);
+      await signLocally(bundle);
 
       readyApp = bundle;
       set({ status: 'ready', progress: 1 });
@@ -135,15 +157,27 @@ function swapOnExit() {
   readyApp = null;
 }
 
+/** A copy installed from the public .dmg is ad-hoc signed: sign it locally once, if possible. */
+async function signSelfIfAdHoc() {
+  if (!app.isPackaged || process.platform !== 'darwin' || unsupported()) return;
+  try {
+    const info = await new Promise((res) => execFile('/usr/bin/codesign', ['-dv', appBundle()], (_e, _o, err) => res(String(err))));
+    if (!/Signature=adhoc/.test(info)) return;
+    if (await signLocally(appBundle())) console.log('Signed Relay with this Mac’s developer certificate; notifications work after a restart.');
+  } catch {}
+}
+
 function init(listener) {
   onChange = listener;
   app.on('will-quit', swapOnExit);
+  setTimeout(signSelfIfAdHoc, 10 * 1000);
   if (unsupported()) { set({ status: 'unsupported', error: unsupported() }); return; }
   setTimeout(() => check(), FIRST_CHECK);
   setInterval(() => check(), EVERY);
 }
 
 module.exports = {
+  signLocally,
   init,
   check,
   getState: () => state,
