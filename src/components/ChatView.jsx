@@ -16,7 +16,7 @@ import { uploadAttachment } from '../media.js';
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
 
-export default function ChatView({ client, info, focused, actions }) {
+export default function ChatView({ client, info, focused, actions, droppedFiles, onDroppedTaken }) {
   const { room } = info;
   const me = client.getUserId();
   const net = networkInfo(info.network);
@@ -136,6 +136,11 @@ export default function ChatView({ client, info, focused, actions }) {
     }))]);
     composerRef.current?.focus();
   };
+  useEffect(() => {
+    if (!droppedFiles) return;
+    stageFiles(droppedFiles);
+    onDroppedTaken?.();
+  }, [droppedFiles]); // eslint-disable-line react-hooks/exhaustive-deps
   const unstage = (id) => setStaged((s) => {
     const item = s.find((x) => x.id === id);
     if (item?.preview) URL.revokeObjectURL(item.preview);

@@ -21,6 +21,16 @@ contextBridge.exposeInMainWorld('relay', {
   setTheme: (theme) => ipcRenderer.send('app:setTheme', theme),
   version: () => ipcRenderer.invoke('app:version'),
   customSounds: () => ipcRenderer.invoke('app:customSounds'),
+  update: {
+    state: () => ipcRenderer.invoke('update:state'),
+    check: () => ipcRenderer.invoke('update:check'),
+    install: () => ipcRenderer.invoke('update:install'),
+    onState: (cb) => {
+      const fn = (_e, s) => cb(s);
+      ipcRenderer.on('update:state', fn);
+      return () => ipcRenderer.removeListener('update:state', fn);
+    },
+  },
   getOpenAtLogin: () => ipcRenderer.invoke('app:getOpenAtLogin'),
   setOpenAtLogin: (on) => ipcRenderer.invoke('app:setOpenAtLogin', on),
   local: {

@@ -260,6 +260,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     try { localStorage.setItem('relay.activeRoom', id || ''); } catch {}
   }, []);
 
+  // Files dropped on a chat in the list wait here until that chat's view picks them up.
+  const [droppedFiles, setDroppedFiles] = useState(null);
+  const dropOnRoom = useCallback((id, files) => { setDroppedFiles({ roomId: id, files }); openRoom(id); }, [openRoom]);
+
   // ----- Dock badge -----
   const badge = prefs.badge === 'off' ? 0
     : prefs.badge === 'chats' ? rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread)).length
@@ -464,10 +468,12 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         onSettings={() => setSettings('general')}
+        onDropFiles={dropOnRoom}
       />
 
       {active ? (
-        <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions} />
+        <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions}
+          droppedFiles={droppedFiles?.roomId === active.id ? droppedFiles.files : null} onDroppedTaken={() => setDroppedFiles(null)} />
       ) : (
         <div className="empty-chat">
           <div className="drag-region" />

@@ -25,7 +25,8 @@ Relay as a normal linked device, like WhatsApp Web.
 - Several accounts per network (for example a personal and a Business WhatsApp)
 - Chats you archived or pinned on your phone are archived or pinned here too
 - Replies (double-click or swipe), threads, reactions, edits, deletes, forwarding, multi-select
-- Media with a preview tray and caption before sending, files up to 2 GB
+- Media with a preview tray and caption before sending, files up to 2 GB; drop files on any chat in the list
+- Updates itself from GitHub releases (Settings → About)
 - Voice messages with waveform, playback speed, a mini player and local transcription
   (via [whisper.cpp](https://github.com/ggml-org/whisper.cpp), if installed)
 - Read receipts with "Seen at" times, typing indicators, mentions
@@ -89,6 +90,7 @@ npm run dev        # Vite + Electron with hot reload
 npm start          # production build, then launch
 npm run dist       # Relay.app + .dmg in ./release, signed with your own certificate if you have one
 npm run dist:public  # ad-hoc signed build, for sharing
+npm run release    # dist:public + a GitHub release with the .dmg and the .zip the updater uses
 ```
 
 You can also sign in with any existing Matrix account that has bridges (see

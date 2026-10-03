@@ -8,6 +8,7 @@ import { local, cleanError } from '../local.js';
 import { NOTIFICATION_SOUNDS, notificationSound, uiSound } from '../sounds.js';
 import { player } from '../player.js';
 import VolumeSlider from './VolumeSlider.jsx';
+import { useUpdate } from '../update.js';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
@@ -312,6 +313,29 @@ function Advanced({ isLocal, onSignOut }) {
   );
 }
 
+function UpdateStatus() {
+  const u = useUpdate();
+  if (!u.supported) return null;
+  const line = {
+    checking: 'Checking for updates…',
+    downloading: `Downloading Relay ${u.version}… ${Math.round((u.progress || 0) * 100)}%`,
+    ready: `Relay ${u.version} is ready to install.`,
+    uptodate: 'Relay is up to date.',
+    error: u.error,
+    unsupported: u.error,
+  }[u.status] || 'Relay checks for updates automatically.';
+  return (
+    <div className="update-status">
+      <p className={`small ${u.status === 'error' ? 'error-text' : 'muted'}`}>{line}</p>
+      {u.status === 'ready'
+        ? <button className="primary" onClick={() => u.install()}>Restart to update</button>
+        : u.status !== 'unsupported' && (
+          <button disabled={u.status === 'checking' || u.status === 'downloading'} onClick={() => u.check()}>Check for updates</button>
+        )}
+    </div>
+  );
+}
+
 function About() {
   const [version, setVersion] = useState('');
   useEffect(() => { window.relay.version?.().then(setVersion); }, []);
@@ -320,9 +344,13 @@ function About() {
       <Logo size={88} />
       <h2>Relay</h2>
       <p className="muted">Version {version}</p>
+      <UpdateStatus />
       <p className="pane-text muted">
         All your chats in one inbox. Built on the open Matrix protocol, with Synapse and the mautrix bridges
         running on your Mac.
+      </p>
+      <p className="pane-text muted small">
+        <a href="https://github.com/alenkpedro/relay" target="_blank" rel="noreferrer">Source code on GitHub</a>
       </p>
     </div>
   );

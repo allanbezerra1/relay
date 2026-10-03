@@ -1,7 +1,7 @@
 {
   "name": "relay",
   "productName": "Relay",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One local inbox for WhatsApp, Telegram, Signal, Discord and more, built on Matrix",
   "main": "electron/main.cjs",
   "private": true,
@@ -11,7 +11,8 @@
     "start": "vite build && electron .",
     "dist": "vite build && electron-builder --mac",
     "dist:public": "vite build && electron-builder --mac -c.mac.identity=-",
-    "dev-server": "scripts/dev-server.sh"
+    "dev-server": "scripts/dev-server.sh",
+    "release": "scripts/release.sh"
   },
   "build": {
     "appId": "dev.relay.desktop",

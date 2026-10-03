@@ -4,6 +4,7 @@ const { execFile } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
+const updater = require('./updater.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -404,6 +405,10 @@ ipcMain.handle('media:askMic', async () => {
   return systemPreferences.askForMediaAccess('microphone');
 });
 
+ipcMain.handle('update:state', () => updater.getState());
+ipcMain.handle('update:check', () => updater.check({ manual: true }));
+ipcMain.handle('update:install', () => updater.install());
+
 ipcMain.handle('app:getOpenAtLogin', () => app.getLoginItemSettings().openAtLogin);
 ipcMain.handle('app:setOpenAtLogin', (_e, on) => app.setLoginItemSettings({ openAtLogin: !!on }));
 
@@ -455,6 +460,7 @@ app.whenReady().then(() => {
     ]));
   }
   createWindow();
+  updater.init((s) => send('update:state', s));
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
     else { if (process.platform === 'darwin') app.show(); win?.show(); }

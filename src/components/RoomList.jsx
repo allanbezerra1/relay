@@ -3,6 +3,7 @@ import ContextMenu from './ContextMenu.jsx';
 import Avatar from './Avatar.jsx';
 import SyncBar from './SyncBar.jsx';
 import MiniPlayer from './MiniPlayer.jsx';
+import UpdateBanner from './UpdateBanner.jsx';
 import { roomAvatar, formatTime, memberAvatar, senderName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
 
@@ -26,13 +27,20 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter,
+  typeFilter, setTypeFilter, onDropFiles,
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
   const pinned = showTiles ? rooms.filter((r) => r.pinned) : [];
   const listRooms = showTiles ? rooms.filter((r) => !r.pinned) : rooms;
   const [menu, setMenu] = useState(null);
+  // Drop files on a chat in the list to open it with them ready to send.
+  const [dropId, setDropId] = useState(null);
+  const dropProps = (r) => onDropFiles ? {
+    onDragOver: (e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (dropId !== r.id) setDropId(r.id); } },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropId((d) => (d === r.id ? null : d)); },
+    onDrop: (e) => { e.preventDefault(); setDropId(null); const files = [...e.dataTransfer.files]; if (files.length) onDropFiles(r.id, files); },
+  } : {};
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const filtersActive = unreadOnly || !!typeFilter || !!labelFilter;
@@ -188,7 +196,7 @@ export default function RoomList({
         {pinned.length > 0 && (
           <div className="pinned-tiles">
             {pinned.map((r) => (
-              <button key={r.id} className={`pin-tile ${r.id === activeId && !selecting ? 'active' : ''} ${selected.has(r.id) ? 'selected' : ''}`} onClick={(e) => clickRow(e, r)}
+              <button key={r.id} className={`pin-tile ${r.id === activeId && !selecting ? 'active' : ''} ${selected.has(r.id) ? 'selected' : ''} ${dropId === r.id ? 'drop-target' : ''}`} onClick={(e) => clickRow(e, r)} {...dropProps(r)}
                 onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, r }); }} title={r.name}>
                 <Avatar src={roomAvatar(client, r.room, 160)} name={r.name} id={r.id} size={62} network={r.network} account={r.account} />
                 {(r.unread > 0 || r.markedUnread) && <span className={`count ${r.muted ? 'muted' : ''}`}>{r.unread || ''}</span>}
@@ -207,8 +215,9 @@ export default function RoomList({
           return (
             <div
               key={r.id}
-              className={`room ${r.id === activeId && !selecting ? 'active' : ''} ${unread ? 'unread' : ''} ${selected.has(r.id) ? 'selected' : ''}`}
+              className={`room ${r.id === activeId && !selecting ? 'active' : ''} ${unread ? 'unread' : ''} ${selected.has(r.id) ? 'selected' : ''} ${dropId === r.id ? 'drop-target' : ''}`}
               onClick={(e) => clickRow(e, r)}
+              {...dropProps(r)}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, r }); }}
             >
               <div className="avatar-wrap">
@@ -243,6 +252,7 @@ export default function RoomList({
       </div>
 
 
+      <UpdateBanner />
       <MiniPlayer />
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.r)} onClose={() => setMenu(null)} />}
     </aside>
