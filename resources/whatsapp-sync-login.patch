@@ -1,0 +1,51 @@
+diff --git a/pkg/connector/commands.go b/pkg/connector/commands.go
+index 037d24e..b251b22 100644
+--- a/pkg/connector/commands.go
++++ b/pkg/connector/commands.go
+@@ -31,6 +31,7 @@ import (
+ 	"go.mau.fi/whatsmeow/types"
+ 	"maunium.net/go/mautrix/bridgev2"
+ 	"maunium.net/go/mautrix/bridgev2/commands"
++	"maunium.net/go/mautrix/bridgev2/networkid"
+ 	"maunium.net/go/mautrix/bridgev2/simplevent"
+ 
+ 	"go.mau.fi/mautrix-whatsapp/pkg/waid"
+@@ -89,6 +90,21 @@ var cmdSync = &commands.FullHandler{
+ 
+ func fnSync(ce *commands.Event) {
+ 	login := ce.User.GetDefaultLogin()
++	// Relay patch: `--login=<login ID>` picks which account to sync with (default: the first one).
++	// Profile photos restricted to "my contacts" can only be fetched by the account that has the
++	// contact's privacy token, so resyncing through the right account matters.
++	for i, arg := range ce.Args {
++		if loginID, ok := strings.CutPrefix(arg, "--login="); ok {
++			if explicit := ce.Bridge.GetCachedUserLoginByID(networkid.UserLoginID(loginID)); explicit != nil && explicit.UserMXID == ce.User.MXID {
++				login = explicit
++			} else {
++				ce.Reply("Login `%s` not found", loginID)
++				return
++			}
++			ce.Args = append(ce.Args[:i:i], ce.Args[i+1:]...)
++			break
++		}
++	}
+ 	if login == nil {
+ 		ce.Reply("Login not found")
+ 		return
+diff --git a/pkg/connector/userinfo.go b/pkg/connector/userinfo.go
+index c78b0a8..268cf94 100644
+--- a/pkg/connector/userinfo.go
++++ b/pkg/connector/userinfo.go
+@@ -374,6 +374,12 @@ func (wa *WhatsAppClient) fetchGhostAvatar(ctx context.Context, ghost *bridgev2.
+ 			Remove: true,
+ 		}
+ 	} else if errors.Is(err, whatsmeow.ErrProfilePictureUnauthorized) {
++		// Relay patch: "unauthorized" means *this* account can't see the photo (e.g. it lacks the
++		// contact's privacy token), not that there is none. With several accounts, another one may
++		// have fetched it already, so keep that instead of wiping it.
++		if ghost.AvatarMXC != "" {
++			return false
++		}
+ 		wrappedAvatar = &bridgev2.Avatar{
+ 			ID:     "unauthorized",
+ 			Remove: true,

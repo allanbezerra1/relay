@@ -1,0 +1,7 @@
+node_modules
+dist
+release
+.dev-server
+.DS_Store
+.claude
+*.log

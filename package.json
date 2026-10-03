@@ -1,0 +1,65 @@
+{
+  "name": "relay",
+  "productName": "Relay",
+  "version": "0.1.0",
+  "description": "One local inbox for WhatsApp, Telegram, Signal, Discord and more, built on Matrix",
+  "main": "electron/main.cjs",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "dist": "vite build && electron-builder --mac",
+    "dist:public": "vite build && electron-builder --mac -c.mac.identity=-",
+    "dev-server": "scripts/dev-server.sh"
+  },
+  "build": {
+    "appId": "dev.relay.desktop",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Relay uses the microphone to record voice messages."
+      }
+    },
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [
+      {
+        "from": "resources/libolm.3.dylib",
+        "to": "libolm.3.dylib"
+      },
+      {
+        "from": "resources/whatsapp-sync-login.patch",
+        "to": "whatsapp-sync-login.patch"
+      }
+    ]
+  },
+  "dependencies": {
+    "matrix-js-sdk": "^43.0.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.3.2",
+    "wait-on": "^9.5.1"
+  },
+  "license": "MIT",
+  "author": "Relay contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alenkpedro/relay.git"
+  }
+}
