@@ -245,6 +245,7 @@ ipcMain.handle('local:install', () => local.install((step, message) => send('loc
 ipcMain.handle('local:start', () => local.start());
 ipcMain.handle('local:credentials', () => local.credentials());
 ipcMain.handle('local:favoriteStickers', () => local.favoriteStickers());
+ipcMain.on('local:viewing', (_e, roomId, active) => { local.whatsappViewing(roomId, active).catch(() => {}); });
 ipcMain.handle('local:loginStart', (_e, name, flowId) => local.loginStart(name, flowId));
 ipcMain.handle('local:loginStep', (_e, name, processId, stepId, type, data) => local.loginStep(name, processId, stepId, type, data));
 ipcMain.handle('local:loginCancel', (_e, name, processId) => local.loginCancel(name, processId));

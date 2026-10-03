@@ -48,6 +48,18 @@ index 037d24e..4ceacd0 100644
  	case "groups":
  		groups, err := wa.Client.GetJoinedGroups(ce.Ctx)
  		if err != nil {
+diff --git a/pkg/connector/connector.go b/pkg/connector/connector.go
+index d7261d3..8210a37 100644
+--- a/pkg/connector/connector.go
++++ b/pkg/connector/connector.go
+@@ -164,6 +164,7 @@ func (wa *WhatsAppConnector) Start(ctx context.Context) error {
+ 	if err != nil {
+ 		return fmt.Errorf("failed to migrate to LID DMs: %w", err)
+ 	}
++	wa.relayRegisterRoutes() // Relay patch: see relay_presence.go
+ 	go func() {
+ 		err = wa.syncMismatchingGhosts(wa.Bridge.BackgroundCtx)
+ 		if err != nil {
 diff --git a/pkg/connector/handlewhatsapp.go b/pkg/connector/handlewhatsapp.go
 index 5381311..bd3ec0b 100644
 --- a/pkg/connector/handlewhatsapp.go
@@ -71,6 +83,108 @@ index 5381311..bd3ec0b 100644
  	case *events.PushNameSetting:
  		// Send presence available when connecting and when the pushname is changed.
  		// This makes sure that outgoing messages always have the right pushname.
+diff --git a/pkg/connector/relay_presence.go b/pkg/connector/relay_presence.go
+new file mode 100644
+index 0000000..ea26f41
+--- /dev/null
++++ b/pkg/connector/relay_presence.go
+@@ -0,0 +1,96 @@
++// Relay patch: typing indicators.
++//
++// WhatsApp only sends "typing…" to clients that are online, and for one-to-one chats only after
++// subscribing to that contact's presence. Beeper's own app signals "viewing chat" for this, which
++// the open-source bridge never receives. Relay calls POST /v3/relay/viewing instead while a chat is
++// open and the window is focused: the account goes online (like WhatsApp Web does), subscribes to
++// the contact, and goes back offline a couple of minutes after the last call.
++package connector
++
++import (
++	"context"
++	"encoding/json"
++	"net/http"
++	"sync"
++	"time"
++
++	"go.mau.fi/whatsmeow/types"
++	"maunium.net/go/mautrix/bridgev2"
++	"maunium.net/go/mautrix/bridgev2/networkid"
++)
++
++const relayOnlineFor = 2 * time.Minute
++
++var (
++	relayPresenceLock  sync.Mutex
++	relayOfflineTimers = map[*WhatsAppClient]*time.Timer{}
++	relaySubscribed    = map[string]time.Time{} // login|jid -> last SubscribePresence
++)
++
++func (wa *WhatsAppConnector) relayRegisterRoutes() {
++	p, ok := wa.Bridge.Matrix.(bridgev2.MatrixConnectorWithProvisioning)
++	if !ok || p.GetProvisioning() == nil || p.GetProvisioning().GetRouter() == nil {
++		return
++	}
++	p.GetProvisioning().GetRouter().HandleFunc("POST /v3/relay/viewing", func(w http.ResponseWriter, r *http.Request) {
++		var body struct {
++			LoginID string `json:"login_id"`
++			Chat    string `json:"chat"`
++			Active  bool   `json:"active"`
++		}
++		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
++			http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
++			return
++		}
++		login := wa.Bridge.GetCachedUserLoginByID(networkid.UserLoginID(body.LoginID))
++		if login == nil {
++			http.Error(w, `{"error":"login not found"}`, http.StatusNotFound)
++			return
++		}
++		client, ok := login.Client.(*WhatsAppClient)
++		if !ok || client.Client == nil || !client.Client.IsLoggedIn() {
++			http.Error(w, `{"error":"not logged in"}`, http.StatusConflict)
++			return
++		}
++		chat, _ := types.ParseJID(body.Chat)
++		client.relayViewing(login.Log.WithContext(wa.Bridge.BackgroundCtx), chat, body.Active)
++		w.WriteHeader(http.StatusNoContent)
++	})
++}
++
++func (wa *WhatsAppClient) relayViewing(ctx context.Context, chat types.JID, active bool) {
++	relayPresenceLock.Lock()
++	defer relayPresenceLock.Unlock()
++	if t := relayOfflineTimers[wa]; t != nil {
++		t.Stop()
++		delete(relayOfflineTimers, wa)
++	}
++	if !active {
++		if wa.lastPresence == types.PresenceAvailable {
++			_ = wa.updatePresence(ctx, types.PresenceUnavailable)
++		}
++		return
++	}
++	if wa.lastPresence != types.PresenceAvailable {
++		if err := wa.updatePresence(ctx, types.PresenceAvailable); err != nil {
++			wa.UserLogin.Log.Warn().Err(err).Msg("Relay: failed to go online")
++		}
++	}
++	relayOfflineTimers[wa] = time.AfterFunc(relayOnlineFor, func() {
++		relayPresenceLock.Lock()
++		defer relayPresenceLock.Unlock()
++		delete(relayOfflineTimers, wa)
++		_ = wa.updatePresence(context.WithoutCancel(ctx), types.PresenceUnavailable)
++	})
++	if chat.Server == types.DefaultUserServer || chat.Server == types.HiddenUserServer {
++		key := string(wa.UserLogin.ID) + "|" + chat.String()
++		if time.Since(relaySubscribed[key]) > 5*time.Minute {
++			relaySubscribed[key] = time.Now()
++			go func() {
++				if err := wa.Client.SubscribePresence(ctx, chat); err != nil {
++					wa.UserLogin.Log.Debug().Err(err).Stringer("chat", chat).Msg("Relay: presence subscription failed")
++				}
++			}()
++		}
++	}
++}
 diff --git a/pkg/connector/relay_stickers.go b/pkg/connector/relay_stickers.go
 new file mode 100644
 index 0000000..d3b981f

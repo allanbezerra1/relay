@@ -802,7 +802,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 4;
+const PATCH_REV = 5;
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
@@ -945,6 +945,26 @@ function favoriteStickers() {
   return out.map(({ path: _p, url: _u, error: _e, ...s }) => s);
 }
 
+// ---------- Typing indicators (patched WhatsApp bridge, r5+) ----------
+
+const viewingTarget = new Map(); // roomId -> { login, chat } | null
+
+/** Tell the WhatsApp bridge a chat is open (active) or not, so it can receive "typing…". */
+async function whatsappViewing(roomId, active) {
+  if (!isBridgeInstalled('whatsapp') || procs.get('whatsapp')?.status !== 'running') return;
+  if (!viewingTarget.has(roomId)) {
+    viewingTarget.set(roomId, withWhatsAppDb((db) => {
+      const p = db.prepare('SELECT id, receiver FROM portal WHERE mxid = ?').get(roomId);
+      if (!p) return null;
+      const login = p.receiver || db.prepare('SELECT login_id FROM user_portal WHERE portal_id = ? AND portal_receiver = ? ORDER BY preferred DESC LIMIT 1').get(p.id, p.receiver)?.login_id;
+      return login ? { login, chat: p.id } : null;
+    }));
+  }
+  const t = viewingTarget.get(roomId);
+  if (!t) return;
+  await prov('whatsapp', 'POST', '/relay/viewing', { login_id: t.login, chat: t.chat, active: !!active }).catch(() => {});
+}
+
 let tagTimer = null;
 function scheduleTagImport() {
   clearInterval(tagTimer);
@@ -1038,7 +1058,7 @@ module.exports = {
   HS_URL, MY_ID, BRIDGES,
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
-  favoriteStickers, syncFavoriteStickers,
+  favoriteStickers, syncFavoriteStickers, whatsappViewing,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
 };

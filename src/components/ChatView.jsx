@@ -107,6 +107,17 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     if (el && el.scrollHeight + el.scrollTop - el.clientHeight < 400) loadOlder();
   };
 
+  // ----- Typing indicators: WhatsApp only sends them while this chat is open and we're "online" -----
+  const isWhatsApp = /^whatsapp/.test(info.network || '');
+  useEffect(() => {
+    const viewing = window.relay.local?.viewing;
+    if (!isWhatsApp || !viewing) return undefined;
+    if (!focused) { viewing(room.roomId, false); return undefined; }
+    viewing(room.roomId, true);
+    const keepAlive = setInterval(() => viewing(room.roomId, true), 60 * 1000);
+    return () => clearInterval(keepAlive);
+  }, [room.roomId, focused, isWhatsApp]);
+
   // ----- Read receipts -----
   const lastEvent = timeline.getEvents().at(-1);
   useEffect(() => {
