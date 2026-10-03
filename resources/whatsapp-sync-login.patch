@@ -553,3 +553,38 @@ index c78b0a8..268cf94 100644
  		wrappedAvatar = &bridgev2.Avatar{
  			ID:     "unauthorized",
  			Remove: true,
+diff --git a/pkg/msgconv/from-matrix.go b/pkg/msgconv/from-matrix.go
+index 57f9113..4f9f552 100644
+--- a/pkg/msgconv/from-matrix.go
++++ b/pkg/msgconv/from-matrix.go
+@@ -122,6 +122,10 @@ func (mc *MessageConverter) ToWhatsApp(
+ 			return nil, nil, err
+ 		}
+ 		message = mc.constructMediaMessage(ctx, content, evt, uploaded, thumbnail, contextInfo, mime)
++		// Relay patch: send as view once when the Matrix event asks for it.
++		if viewOnce, _ := evt.Content.Raw["dev.relay.view_once"].(bool); viewOnce && message != nil {
++			message = relayViewOnce(message)
++		}
+ 	case event.MsgLocation:
+ 		lat, long, err := parseGeoURI(content.GeoURI)
+ 		if err != nil {
+@@ -688,3 +692,19 @@ func getAudioInfo(content *event.MessageEventContent) (output []byte, duration u
+ 	}
+ 	return
+ }
++
++// relayViewOnce wraps a photo, video or voice message the way WhatsApp sends view-once media.
++func relayViewOnce(msg *waE2E.Message) *waE2E.Message {
++	switch {
++	case msg.ImageMessage != nil:
++		msg.ImageMessage.ViewOnce = proto.Bool(true)
++	case msg.VideoMessage != nil:
++		msg.VideoMessage.ViewOnce = proto.Bool(true)
++	case msg.AudioMessage != nil:
++		msg.AudioMessage.ViewOnce = proto.Bool(true)
++		return &waE2E.Message{ViewOnceMessageV2Extension: &waE2E.FutureProofMessage{Message: msg}}
++	default:
++		return msg
++	}
++	return &waE2E.Message{ViewOnceMessageV2: &waE2E.FutureProofMessage{Message: msg}}
++}

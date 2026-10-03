@@ -188,6 +188,10 @@ const Composer = forwardRef(function Composer(
   };
 
   const [asDocument, setAsDocument] = useState(false);
+  // View once (WhatsApp): photos/videos in the tray, or the voice message being recorded.
+  const [viewOnce, setViewOnce] = useState(false);
+  const canViewOnce = /^whatsapp/.test(networkId || '');
+  const stagedMediaOnly = staged.length > 0 && staged.every((s) => /^(image|video)\//.test(s.file.type));
   const send = async () => {
     const body = text.trim();
     if (staged.length) {
@@ -196,8 +200,9 @@ const Composer = forwardRef(function Composer(
       const reply = replyTo;
       onSent();
       uiSound('send');
-      await onSendStaged(body, asDocument, reply);
+      await onSendStaged(body, asDocument, reply, viewOnce && stagedMediaOnly && !asDocument);
       setAsDocument(false);
+      setViewOnce(false);
       return;
     }
     if (!body) return;
@@ -247,7 +252,8 @@ const Composer = forwardRef(function Composer(
     setSendingVoice(true);
     try {
       const rec = await voice.stop();
-      if (rec) { uiSound('send'); await onVoice(rec, replyTo); }
+      if (rec) { uiSound('send'); await onVoice({ ...rec, viewOnce: canViewOnce && viewOnce }, replyTo); }
+      setViewOnce(false);
       onSent();
     } catch (err) {
       setVoiceError(err.message);
@@ -310,6 +316,10 @@ const Composer = forwardRef(function Composer(
           </div>
           <div className="stage-foot">
             <span className="muted small">{staged.length} {staged.length === 1 ? 'file' : 'files'} · type a caption below, then send</span>
+            {canViewOnce && stagedMediaOnly && !asDocument && (
+              <button className={`view-once-btn ${viewOnce ? 'on' : ''}`} onClick={() => setViewOnce(!viewOnce)}
+                title={viewOnce ? 'View once: on (they can open it one time)' : 'Send as view once'}>1</button>
+            )}
             <label className="stage-doc"><input type="checkbox" checked={asDocument} onChange={(e) => setAsDocument(e.target.checked)} /> Send as document (original quality)</label>
             <button className="bulk-link" onClick={onClearStaged}>Discard</button>
           </div>
@@ -328,6 +338,10 @@ const Composer = forwardRef(function Composer(
           <div className="rec-levels">
             {voice.levels.slice(-60).map((v, i) => <i key={i} style={{ height: `${Math.max(8, v * 100)}%` }} />)}
           </div>
+          {canViewOnce && (
+            <button className={`view-once-btn ${viewOnce ? 'on' : ''}`} onClick={() => setViewOnce(!viewOnce)}
+              title={viewOnce ? 'View once: on (they can play it one time)' : 'Send as view once'}>1</button>
+          )}
           <button className="round-btn send ready" onClick={sendVoice} disabled={sendingVoice} title="Send voice message">
             {sendingVoice ? <span className="spinner small light" /> : <Icon d={ICON.send} size={18} />}
           </button>

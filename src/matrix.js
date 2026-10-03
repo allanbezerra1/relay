@@ -208,6 +208,7 @@ export function previewText(room, ev, myUserId) {
   const who = ev.getSender() === myUserId ? 'You' : null;
   let text;
   if (ev.getType() === EventType.Sticker) text = 'Sticker';
+  else if (c['dev.relay.view_once'] || (c.msgtype === MsgType.Notice && /view once message/i.test(c.body || ''))) text = '① View once message';
   else switch (c.msgtype) {
     case MsgType.Image: text = '📷 Photo'; break;
     case MsgType.Video: text = '🎥 Video'; break;

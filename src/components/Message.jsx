@@ -261,6 +261,16 @@ function FileBody({ client, content }) {
 
 function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
   if (ev.isRedacted()) return <span className="meta-text">🚫 Message deleted</span>;
+  // WhatsApp never sends view-once media to linked devices; the bridge leaves a notice instead.
+  if (content.msgtype === MsgType.Notice && /view once message/i.test(content.body || '')) {
+    const sent = /You sent/i.test(content.body);
+    return (
+      <span className="view-once-msg">
+        <span className="vo-circle">1</span>
+        <span><b>View once message</b><small>{sent ? 'Sent from your phone' : 'Open it on your phone'}</small></span>
+      </span>
+    );
+  }
   if (ev.isDecryptionFailure()) return <span className="meta-text">🔒 Unable to decrypt this message.</span>;
   if (ev.getType() === EventType.RoomMessageEncrypted) return <span className="meta-text">🔒 Decrypting…</span>;
   if (ev.getType() === EventType.Sticker) return <ImageBody client={client} content={content} onOpen={onOpenImage} sticker />;
@@ -490,6 +500,7 @@ function Message({
           ].filter(Boolean).join(' ')}>
             {replyId && <ReplyQuote room={room} id={replyId} onOpen={onOpenThread && !selecting ? () => onOpenThread(ev) : null} />}
             <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} />
+            {content['dev.relay.view_once'] && <span className="vo-tag"><span className="vo-circle small">1</span>View once</span>}
             {!imageOverlay && !isAudio && meta}
           </div>
 

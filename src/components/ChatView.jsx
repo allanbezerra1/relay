@@ -178,14 +178,14 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const clearStaged = () => setStaged((s) => { s.forEach((x) => x.preview && URL.revokeObjectURL(x.preview)); return []; });
   useEffect(() => clearStaged, [room.roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sendStaged = async (caption, asDocument, replyTo) => {
+  const sendStaged = async (caption, asDocument, replyTo, viewOnce = false) => {
     const items = staged;
     setStaged([]);
-    await sendFiles(items.map((x) => x.file), caption, asDocument, replyTo);
+    await sendFiles(items.map((x) => x.file), caption, asDocument, replyTo, viewOnce);
     items.forEach((x) => x.preview && URL.revokeObjectURL(x.preview));
   };
 
-  const sendFiles = async (files, caption = '', asDocument = false, replyTo = null) => {
+  const sendFiles = async (files, caption = '', asDocument = false, replyTo = null, viewOnce = false) => {
     for (const [i, file] of files.entries()) {
       const id = Math.random().toString(36).slice(2);
       setUploads((u) => [...u, { id, name: file.name, progress: 0 }]);
@@ -193,6 +193,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
         // Caption goes on the first file (bridges put `body` ≠ `filename` as the caption).
         const extra = {};
         if (asDocument) extra.msgtype = 'm.file';
+        if (viewOnce && /^(image|video)\//.test(file.type)) extra['dev.relay.view_once'] = true; // see the WhatsApp bridge patch
         if (i === 0 && caption.trim()) extra.body = caption.trim();
         const content = await uploadAttachment(client, room, file, (p) =>
           setUploads((u) => u.map((x) => (x.id === id ? { ...x, progress: p } : x))), extra);
@@ -206,13 +207,14 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     }
   };
 
-  const sendVoice = async ({ file, duration, waveform }, replyTo) => {
+  const sendVoice = async ({ file, duration, waveform, viewOnce }, replyTo) => {
     const content = await uploadAttachment(client, room, file, undefined, {
       msgtype: 'm.audio',
       body: 'Voice message',
       'org.matrix.msc3245.voice': {},
       'org.matrix.msc1767.audio': { duration, waveform },
       info: { duration },
+      ...(viewOnce ? { 'dev.relay.view_once': true } : {}),
     });
     if (replyTo) content['m.relates_to'] = { 'm.in_reply_to': { event_id: replyTo.getId() } };
     await client.sendMessage(room.roomId, content);
