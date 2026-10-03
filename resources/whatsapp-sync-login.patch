@@ -554,7 +554,7 @@ index c78b0a8..268cf94 100644
  			ID:     "unauthorized",
  			Remove: true,
 diff --git a/pkg/msgconv/from-matrix.go b/pkg/msgconv/from-matrix.go
-index 57f9113..4f9f552 100644
+index 57f9113..13c61d5 100644
 --- a/pkg/msgconv/from-matrix.go
 +++ b/pkg/msgconv/from-matrix.go
 @@ -122,6 +122,10 @@ func (mc *MessageConverter) ToWhatsApp(
@@ -568,6 +568,15 @@ index 57f9113..4f9f552 100644
  	case event.MsgLocation:
  		lat, long, err := parseGeoURI(content.GeoURI)
  		if err != nil {
+@@ -441,7 +445,7 @@ func (mc *MessageConverter) convertToJPEG(webpImage []byte) ([]byte, error) {
+ 	}
+ 
+ 	var jpgBuffer bytes.Buffer
+-	if err = jpeg.Encode(&jpgBuffer, decoded, &jpeg.Options{Quality: 80}); err != nil {
++	if err = jpeg.Encode(&jpgBuffer, decoded, &jpeg.Options{Quality: 92}); err != nil { // Relay patch: was 80
+ 		return nil, fmt.Errorf("failed to encode png image: %w", err)
+ 	}
+ 
 @@ -688,3 +692,19 @@ func getAudioInfo(content *event.MessageEventContent) (output []byte, duration u
  	}
  	return

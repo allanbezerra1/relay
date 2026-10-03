@@ -275,6 +275,8 @@ async function configureBridge(name) {
       // Chats archived on your phone land in Relay's Archive, as in Beeper.
       doc.setIn(['network', 'archive_tag'], 'm.lowpriority');
       // Names from your phone's contacts first, and no " (WA)" suffix.
+      // Shown as "Relay" in the phone's Linked devices list.
+      doc.setIn(['network', 'os_name'], 'Relay');
       doc.setIn(['network', 'displayname_template'], '{{or .FullName .BusinessName .PushName .Phone .RedactedPhone "Unknown user"}}');
     }
     if (name === 'telegram' && s.telegram) {
@@ -802,7 +804,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 8;
+const PATCH_REV = 9;
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
