@@ -1,7 +1,7 @@
 {
   "name": "relay",
   "productName": "Relay",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "One local inbox for WhatsApp, Telegram, Signal, Discord and more, built on Matrix",
   "main": "electron/main.cjs",
   "private": true,

@@ -1513,3 +1513,11 @@ body { background: var(--panel); }
 .video-seek { flex: 1; min-width: 30px; height: 14px; display: flex; align-items: center; cursor: pointer; position: relative; }
 .video-seek::before { content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.3); }
 .video-seek i { position: relative; height: 3px; border-radius: 2px; background: #fff; }
+.sticker-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.sticker-tabs button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; background: none;
+  color: var(--text-3); font-size: 12px; font-weight: 600; padding: 6px 4px; border-radius: 8px;
+}
+.sticker-tabs button:hover { color: var(--text-2); background: var(--hover); }
+.sticker-tabs button.on { color: var(--text); background: var(--active); }
+.sticker-count { font-size: 10.5px; font-weight: 600; padding: 0 5px; border-radius: 8px; background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text-2); }

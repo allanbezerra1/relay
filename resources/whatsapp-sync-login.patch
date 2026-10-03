@@ -49,14 +49,14 @@ index 037d24e..4ceacd0 100644
  		groups, err := wa.Client.GetJoinedGroups(ce.Ctx)
  		if err != nil {
 diff --git a/pkg/connector/handlewhatsapp.go b/pkg/connector/handlewhatsapp.go
-index 5381311..c52bc01 100644
+index 5381311..bd3ec0b 100644
 --- a/pkg/connector/handlewhatsapp.go
 +++ b/pkg/connector/handlewhatsapp.go
 @@ -79,6 +79,9 @@ func (wa *WhatsAppClient) handleWAEvent(rawEvt any) (success bool) {
  	log := wa.UserLogin.Log
  	ctx := log.WithContext(wa.Main.Bridge.BackgroundCtx)
  	wa.MC.OnWhatsAppEvent(rawEvt)
-+	if wa.relayIgnoreDuringStickerSync(rawEvt) {
++	if wa.relayIgnoreDuringStickerSync(rawEvt) || wa.relayHandlePeerResponse(rawEvt) {
 +		return true
 +	}
  
@@ -73,10 +73,10 @@ index 5381311..c52bc01 100644
  		// This makes sure that outgoing messages always have the right pushname.
 diff --git a/pkg/connector/relay_stickers.go b/pkg/connector/relay_stickers.go
 new file mode 100644
-index 0000000..bcb09e1
+index 0000000..d3b981f
 --- /dev/null
 +++ b/pkg/connector/relay_stickers.go
-@@ -0,0 +1,193 @@
+@@ -0,0 +1,303 @@
 +// Relay patch: favorite stickers.
 +//
 +// WhatsApp syncs your favorite stickers to linked devices through app state ("favoriteSticker"
@@ -92,13 +92,16 @@ index 0000000..bcb09e1
 +	"encoding/json"
 +	"errors"
 +	"os"
++	"strings"
 +	"sync"
 +	"time"
 +
 +	"go.mau.fi/whatsmeow"
 +	"go.mau.fi/whatsmeow/appstate"
++	"go.mau.fi/whatsmeow/proto/waE2E"
 +	"go.mau.fi/whatsmeow/proto/waSyncAction"
 +	"go.mau.fi/whatsmeow/types/events"
++	"google.golang.org/protobuf/proto"
 +)
 +
 +const relayStickerFile = "favorite-stickers.json"
@@ -113,6 +116,7 @@ index 0000000..bcb09e1
 +	Lottie    bool   `json:"lottie,omitempty"`
 +	Timestamp int64  `json:"ts"`
 +	Error     string `json:"error,omitempty"`
++	Requested int64  `json:"requested,omitempty"`
 +	Path      string `json:"path,omitempty"`
 +	URL       string `json:"url,omitempty"`
 +}
@@ -168,10 +172,11 @@ index 0000000..bcb09e1
 +	}
 +	key := evt.Index[1]
 +	ts := evt.SyncActionValue.GetTimestamp()
-+	go wa.relayStoreSticker(ctx, key, ts, action)
++	_, force := relayStickerSyncing.Load(wa) // an explicit full sync retries expired ones right away
++	go wa.relayStoreSticker(ctx, key, ts, action, force)
 +}
 +
-+func (wa *WhatsAppClient) relayStoreSticker(ctx context.Context, key string, ts int64, action *waSyncAction.StickerAction) {
++func (wa *WhatsAppClient) relayStoreSticker(ctx context.Context, key string, ts int64, action *waSyncAction.StickerAction, force bool) {
 +	log := wa.UserLogin.Log.With().Str("relay_sticker", key).Logger()
 +	login := string(wa.UserLogin.ID)
 +
@@ -197,8 +202,14 @@ index 0000000..bcb09e1
 +	if entry.Favorite && entry.MXC == "" && !entry.Lottie {
 +		data, err := wa.relayDownloadSticker(ctx, key, action)
 +		if err != nil {
-+			log.Warn().Err(err).Msg("Failed to download favorite sticker")
++			log.Debug().Err(err).Msg("Favorite sticker link expired, asking the phone to upload it again")
 +			entry.Error = err.Error()
++			if force || existing == nil || time.Since(time.UnixMilli(existing.Requested)) > 6*time.Hour {
++				entry.Requested = time.Now().UnixMilli()
++				wa.relayRequestReupload(key)
++			} else {
++				entry.Requested = existing.Requested
++			}
 +		} else if mxc, _, err := wa.Main.Bridge.Bot.UploadMedia(ctx, "", data, "sticker.webp", entry.Mimetype); err != nil {
 +			log.Warn().Err(err).Msg("Failed to upload favorite sticker")
 +			entry.Error = err.Error()
@@ -269,6 +280,105 @@ index 0000000..bcb09e1
 +	_ = relaySaveStickers(all)
 +	relayStickerLock.Unlock()
 +	return errors.Join(errs...)
++}
++
++// ---- Expired favorites: ask the phone to upload them again ----
++
++var relayReuploadQueues sync.Map // *WhatsAppClient -> chan string
++
++// relayRequestReupload queues an UPLOAD_STICKER peer request (one at a time, spaced out) for a
++// favorite whose download link expired. The phone answers with a fresh StickerMessage.
++func (wa *WhatsAppClient) relayRequestReupload(key string) {
++	q, loaded := relayReuploadQueues.LoadOrStore(wa, make(chan string, 1024))
++	ch := q.(chan string)
++	if !loaded {
++		go func() {
++			ctx := wa.UserLogin.Log.WithContext(wa.Main.Bridge.BackgroundCtx)
++			for k := range ch {
++				_, err := wa.Client.SendPeerMessage(ctx, &waE2E.Message{ProtocolMessage: &waE2E.ProtocolMessage{
++					Type: waE2E.ProtocolMessage_PEER_DATA_OPERATION_REQUEST_MESSAGE.Enum(),
++					PeerDataOperationRequestMessage: &waE2E.PeerDataOperationRequestMessage{
++						PeerDataOperationRequestType: waE2E.PeerDataOperationRequestType_UPLOAD_STICKER.Enum(),
++						RequestStickerReupload: []*waE2E.PeerDataOperationRequestMessage_RequestStickerReupload{
++							{FileSHA256: proto.String(k)},
++						},
++					},
++				}})
++				if err != nil {
++					wa.UserLogin.Log.Warn().Err(err).Str("relay_sticker", k).Msg("Failed to request sticker reupload")
++				}
++				time.Sleep(1500 * time.Millisecond)
++			}
++		}()
++	}
++	select {
++	case ch <- key:
++	default:
++	}
++}
++
++// relayHandlePeerResponse picks up the phone's answers to UPLOAD_STICKER requests.
++func (wa *WhatsAppClient) relayHandlePeerResponse(rawEvt any) bool {
++	evt, ok := rawEvt.(*events.Message)
++	if !ok {
++		return false
++	}
++	resp := evt.Message.GetProtocolMessage().GetPeerDataOperationRequestResponseMessage()
++	if resp == nil || resp.GetPeerDataOperationRequestType() != waE2E.PeerDataOperationRequestType_UPLOAD_STICKER {
++		return false
++	}
++	ctx := wa.UserLogin.Log.WithContext(wa.Main.Bridge.BackgroundCtx)
++	results := resp.GetPeerDataOperationResult()
++	withSticker := 0
++	for _, r := range results {
++		if r.GetStickerMessage() != nil {
++			withSticker++
++		}
++	}
++	upload := ""
++	if len(results) > 0 {
++		upload = results[0].GetMediaUploadResult().String()
++	}
++	wa.UserLogin.Log.Info().Int("results", len(results)).Int("stickers", withSticker).Str("upload_result", upload).
++		Msg("Relay: phone answered a sticker reupload request")
++	for _, result := range results {
++		if sticker := result.GetStickerMessage(); sticker != nil && len(sticker.GetFileSHA256()) == 32 {
++			go wa.relayStoreReuploaded(ctx, sticker)
++		}
++	}
++	return true
++}
++
++func (wa *WhatsAppClient) relayStoreReuploaded(ctx context.Context, sticker *waE2E.StickerMessage) {
++	key := base64.StdEncoding.EncodeToString(sticker.GetFileSHA256())
++	log := wa.UserLogin.Log.With().Str("relay_sticker", key).Logger()
++	login := string(wa.UserLogin.ID)
++	mime := sticker.GetMimetype()
++	if mime == "" || strings.Contains(mime, "was") {
++		return // Lottie stickers can't be shown outside WhatsApp
++	}
++	data, err := wa.Client.Download(ctx, sticker)
++	if err != nil {
++		log.Warn().Err(err).Msg("Failed to download reuploaded sticker")
++		return
++	}
++	mxc, _, err := wa.Main.Bridge.Bot.UploadMedia(ctx, "", data, "sticker.webp", mime)
++	if err != nil {
++		log.Warn().Err(err).Msg("Failed to upload reuploaded sticker")
++		return
++	}
++	relayStickerLock.Lock()
++	defer relayStickerLock.Unlock()
++	all := relayLoadStickers()
++	entry := all[login][key]
++	if entry == nil {
++		return // not one of this account's favorites
++	}
++	entry.MXC, entry.Size, entry.Error = string(mxc), len(data), ""
++	entry.Mimetype, entry.Width, entry.Height = mime, sticker.GetWidth(), sticker.GetHeight()
++	if err = relaySaveStickers(all); err != nil {
++		log.Err(err).Msg("Failed to save favorite stickers")
++	}
 +}
 diff --git a/pkg/connector/userinfo.go b/pkg/connector/userinfo.go
 index c78b0a8..268cf94 100644

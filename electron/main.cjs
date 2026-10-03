@@ -52,10 +52,10 @@ function writeSession(data) {
 
 function installPermissions() {
   // Only our own page may ask for anything, and only the microphone (voice messages),
-  // notifications and clipboard writes (copy message).
+  // notifications, clipboard writes (copy message) and full screen (videos).
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
     const own = DEV_URL ? wc.getURL().startsWith(DEV_URL) : wc.getURL().startsWith('file://');
-    const allowed = permission === 'media' ? !(details.mediaTypes || []).includes('video') : ['notifications', 'clipboard-sanitized-write'].includes(permission);
+    const allowed = permission === 'media' ? !(details.mediaTypes || []).includes('video') : ['notifications', 'clipboard-sanitized-write', 'fullscreen'].includes(permission);
     callback(own && allowed);
   });
 }

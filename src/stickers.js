@@ -18,7 +18,7 @@ const isSticker = (img) => !img.usage || img.usage.includes('sticker');
 export function savedStickers(client) {
   return Object.entries(pack(client).images)
     .filter(([, img]) => img?.url && isSticker(img))
-    .map(([id, img]) => ({ id, url: img.url, body: img.body || 'Sticker', info: img.info || {}, added: img['dev.relay.added'] || 0 }))
+    .map(([id, img]) => ({ id, url: img.url, body: img.body || 'Sticker', info: img.info || {}, added: img['dev.relay.added'] || 0, wa: !!img['dev.relay.wa'] }))
     .sort((a, b) => b.added - a.added);
 }
 
@@ -123,7 +123,43 @@ export async function importWhatsAppFavorites(client) {
   if (changed) await write(client, images, { 'dev.relay.dismissed': dismissed });
 }
 
+// ---- Recent: stickers I sent, from Relay or (via the bridges) from the phone ----
+
+const RECENT_KEY = 'relay.recentStickers';
+const localRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; } };
+
+function rememberRecent(sticker) {
+  const list = [{ url: sticker.url, body: sticker.body, info: sticker.info, ts: Date.now() }, ...localRecent().filter((s) => s.url !== sticker.url)].slice(0, 40);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch {}
+}
+
+/** Newest first, one entry per sticker. */
+export function recentStickers(client, limit = 32) {
+  const me = client.getUserId();
+  const found = [...localRecent()];
+  for (const room of client.getRooms()) {
+    for (const ev of room.getLiveTimeline().getEvents()) {
+      if (ev.getType() !== EventType.Sticker || ev.getSender() !== me || ev.isRedacted()) continue;
+      const c = ev.getContent();
+      if (c.url) found.push({ url: c.url, body: c.body || 'Sticker', info: c.info || {}, ts: ev.getTs() });
+    }
+  }
+  found.sort((a, b) => b.ts - a.ts);
+  // The same sticker sent twice from the phone gets two uploads: match on size + dimensions too.
+  const seen = new Set();
+  const out = [];
+  for (const s of found) {
+    const k = s.info?.size && s.info?.w ? `${s.info.size}:${s.info.w}x${s.info.h}` : s.url;
+    if (seen.has(s.url) || seen.has(k)) continue;
+    seen.add(s.url); seen.add(k);
+    out.push({ id: `recent:${s.url}`, ...s });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 export async function sendSticker(client, roomId, sticker, replyTo = null) {
+  rememberRecent(sticker);
   const info = { ...sticker.info };
   delete info['dev.relay.source'];
   const content = { body: sticker.body, url: sticker.url, info };
