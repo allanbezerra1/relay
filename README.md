@@ -31,6 +31,7 @@ Relay as a normal linked device, like WhatsApp Web.
   (via [whisper.cpp](https://github.com/ggml-org/whisper.cpp), if installed)
 - Read receipts with "Seen at" times, typing indicators, mentions
 - Stickers: your WhatsApp favorite stickers, plus any sticker you save or image you add, in the emoji panel
+- WhatsApp Status (stories viewer) and Communities tabs; send view-once media
 - Labels, starred messages, mute, disappearing-message timer, notes
 - Native notifications, Dock badge, sounds with their own volume controls, light and dark mode
 - End-to-end encryption via the Rust crypto SDK; session stored in the macOS Keychain

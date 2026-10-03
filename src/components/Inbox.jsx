@@ -17,6 +17,8 @@ import NetIcon from './NetIcon.jsx';
 import { useContextMenu } from './ContextMenu.jsx';
 import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
+import StatusPanel from './StatusPanel.jsx';
+import CommunitiesPanel from './CommunitiesPanel.jsx';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -435,6 +437,16 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         <button className={`rail-btn ${view === 'archive' ? 'on' : ''}`} onClick={() => setView(view === 'archive' ? 'inbox' : 'archive')} title="Archive">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M20.54 5.23 19.15 3.55A1.45 1.45 0 0 0 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23A1.98 1.98 0 0 0 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.46-1.27ZM6.24 5h11.52l.81.97H5.44l.8-.97ZM5 19V8h14v11H5Zm8.45-9h-2.9v3H8l4 4 4-4h-2.55v-3Z" /></svg>
         </button>
+        {isLocal && (
+          <>
+            <button className={`rail-btn ${view === 'status' ? 'on' : ''}`} onClick={() => setView(view === 'status' ? 'inbox' : 'status')} title="Status">
+              <svg viewBox="0 0 24 24" width="21" height="21"><path fill="currentColor" d="M12 2a10 10 0 0 1 9.9 8.6l-2 .3A8 8 0 0 0 12 4V2Zm7.6 13.9 1.8.9A10 10 0 0 1 12 22v-2a8 8 0 0 0 7.6-4.1ZM4.4 7.9 2.6 7A10 10 0 0 1 10 2.1l.3 2A8 8 0 0 0 4.4 7.9ZM4 12a8 8 0 0 0 6 7.7l-.5 2A10 10 0 0 1 2 12h2Zm8-4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" /></svg>
+            </button>
+            <button className={`rail-btn ${view === 'communities' ? 'on' : ''}`} onClick={() => setView(view === 'communities' ? 'inbox' : 'communities')} title="Communities">
+              <svg viewBox="0 0 24 24" width="21" height="21"><path fill="currentColor" d="M12 12.75c1.63 0 3.07.39 4.24.9A3 3 0 0 1 18 16.4V18H6v-1.6a3 3 0 0 1 1.76-2.75c1.17-.51 2.61-.9 4.24-.9ZM4 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm1.13 1.1A7 7 0 0 0 4 14c-.99 0-1.93.21-2.78.58A2 2 0 0 0 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29ZM20 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm4 3.43a2 2 0 0 0-1.22-1.85A6.95 6.95 0 0 0 20 14c-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57ZM12 6a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" /></svg>
+            </button>
+          </>
+        )}
         <div className="rail-sep" />
         {railItems.map((item, i) => {
           const net = networkInfo(item.badgeNet || item.net);
@@ -443,7 +455,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             <button
               key={item.key}
               className={`rail-btn app-tile ${filter === item.filter ? 'on' : ''} ${['BAD_CREDENTIALS', 'UNKNOWN_ERROR', 'LOGGED_OUT'].includes(item.state) ? 'degraded' : ''}`}
-              onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)}
+              onClick={() => { if (view === 'status' || view === 'communities') setView('inbox'); setFilter(filter === item.filter ? 'all' : item.filter); }}
               onContextMenu={(e) => openRailMenu(e, [
                 { label: filter === item.filter ? 'Show all chats' : 'Show only this account', run: () => setFilter(filter === item.filter ? 'all' : item.filter) },
                 { label: 'Mark all as read', run: () => rooms.filter((r) => matchesFilter(r, item.filter) && (r.unread || r.markedUnread)).forEach((r) => actions.markRead(r)) },
@@ -470,33 +482,40 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         <button className="rail-me" onClick={() => setSettings('general')} title={myName}>{(myName[0] || 'R').toUpperCase()}</button>
       </nav>
 
-      <RoomList
-        client={client}
-        rooms={visible}
-        activeId={activeId}
-        onOpen={openRoom}
-        query={query}
-        setQuery={setQuery}
-        searchRef={searchRef}
-        view={view}
-        setView={setView}
-        unreadOnly={unreadOnly}
-        setUnreadOnly={setUnreadOnly}
-        filterName={filterName}
-        archivedCount={rooms.filter((r) => r.archived && matchesFilter(r, filter)).length}
-        actions={actions}
-        showPreviews={prefs.showPreviews}
-        me={{ name: myName, avatar: myAvatar, subtitle, id: client.getUserId() }}
-        profiles={profiles}
-        labels={allLabels}
-        labelFilter={labelFilter}
-        setLabelFilter={setLabelFilter}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        onSettings={() => setSettings('general')}
-        onDropFiles={dropOnRoom}
-        onNewGroup={isLocal ? () => setNewGroup(true) : null}
-      />
+      {view === 'status' ? (
+        <StatusPanel client={client} tick={tick} receiptType={actions.receiptType}
+          onReply={(userId, room) => actions.openDirect(userId, { account: accountOf.get(room.roomId) })} />
+      ) : view === 'communities' ? (
+        <CommunitiesPanel client={client} rooms={rooms} tick={tick} activeId={activeId} onOpen={openRoom} />
+      ) : (
+        <RoomList
+          client={client}
+          rooms={visible}
+          activeId={activeId}
+          onOpen={openRoom}
+          query={query}
+          setQuery={setQuery}
+          searchRef={searchRef}
+          view={view}
+          setView={setView}
+          unreadOnly={unreadOnly}
+          setUnreadOnly={setUnreadOnly}
+          filterName={filterName}
+          archivedCount={rooms.filter((r) => r.archived && matchesFilter(r, filter)).length}
+          actions={actions}
+          showPreviews={prefs.showPreviews}
+          me={{ name: myName, avatar: myAvatar, subtitle, id: client.getUserId() }}
+          profiles={profiles}
+          labels={allLabels}
+          labelFilter={labelFilter}
+          setLabelFilter={setLabelFilter}
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+          onSettings={() => setSettings('general')}
+          onDropFiles={dropOnRoom}
+          onNewGroup={isLocal ? () => setNewGroup(true) : null}
+        />
+      )}
 
       {active ? (
         <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions}
