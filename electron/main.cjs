@@ -12,13 +12,22 @@ const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
 let win = null;
 let matrixSession = null; // { baseUrl, accessToken, userId, deviceId }
 
-// ---------- Session storage (encrypted with the OS keychain) ----------
+// ---------- Session storage ----------
+// Sessions for other homeservers are encrypted with the macOS Keychain. The local server's session
+// is kept as a plain 0600 file instead: its token only works against 127.0.0.1, and Synapse's own
+// database next to it holds the same token anyway. Skipping the Keychain matters for updates: the
+// public builds are ad-hoc signed, so every new version would otherwise ask for the login password.
+
+const localSessionFile = () => path.join(app.getPath('userData'), 'session.json');
+const isLocalSession = (data) => !!data && (data.local === true || data.baseUrl?.replace(/\/+$/, '') === local.HS_URL);
 
 function readSession() {
+  try { return JSON.parse(fs.readFileSync(localSessionFile(), 'utf8')); } catch {}
   try {
     const raw = fs.readFileSync(sessionFile());
-    const json = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(raw) : raw.toString('utf8');
-    return JSON.parse(json);
+    const data = JSON.parse(safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(raw) : raw.toString('utf8'));
+    if (isLocalSession(data)) writeSession(data); // move it out of the Keychain
+    return data;
   } catch {
     return null;
   }
@@ -26,8 +35,14 @@ function readSession() {
 
 function writeSession(data) {
   const json = JSON.stringify(data);
+  if (isLocalSession(data)) {
+    fs.writeFileSync(localSessionFile(), json, { mode: 0o600 });
+    try { fs.unlinkSync(sessionFile()); } catch {}
+    return;
+  }
   const buf = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(json) : Buffer.from(json, 'utf8');
   fs.writeFileSync(sessionFile(), buf, { mode: 0o600 });
+  try { fs.unlinkSync(localSessionFile()); } catch {}
 }
 
 // ---------- Authenticated media ----------
@@ -151,6 +166,7 @@ ipcMain.handle('session:set', (_e, data) => {
 ipcMain.handle('session:clear', () => {
   matrixSession = null;
   try { fs.unlinkSync(sessionFile()); } catch {}
+  try { fs.unlinkSync(localSessionFile()); } catch {}
 });
 
 ipcMain.handle('app:focused', () => !!win && win.isFocused());
