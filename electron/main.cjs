@@ -246,6 +246,7 @@ ipcMain.handle('local:start', () => local.start());
 ipcMain.handle('local:credentials', () => local.credentials());
 ipcMain.handle('local:favoriteStickers', () => local.favoriteStickers());
 ipcMain.handle('local:createGroup', (_e, bridge, loginId, params) => local.createGroup(bridge, loginId, params));
+ipcMain.handle('local:recording', (_e, roomId) => local.whatsappRecording(roomId).catch(() => []));
 ipcMain.on('local:viewing', (_e, roomId, active) => { local.whatsappViewing(roomId, active).catch(() => {}); });
 ipcMain.handle('local:loginStart', (_e, name, flowId) => local.loginStart(name, flowId));
 ipcMain.handle('local:loginStep', (_e, name, processId, stepId, type, data) => local.loginStep(name, processId, stepId, type, data));

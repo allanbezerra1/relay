@@ -1595,3 +1595,6 @@ body { background: var(--panel); }
 @keyframes sa-shine { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .sa-orbit, .sa-logo, .sa-bar i::after { animation: none; } }
 .new-group .fw-search { width: 100%; box-sizing: border-box; }
+.typing.recording { color: var(--accent-2); }
+.rec-mic { animation: rec-pulse 1s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: 0.35; } }

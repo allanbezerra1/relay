@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('relay', {
     favoriteStickers: () => ipcRenderer.invoke('local:favoriteStickers'),
     createGroup: (bridge, loginId, params) => ipcRenderer.invoke('local:createGroup', bridge, loginId, params),
     viewing: (roomId, active) => ipcRenderer.send('local:viewing', roomId, active),
+    recording: (roomId) => ipcRenderer.invoke('local:recording', roomId),
     loginStart: (name, flowId) => ipcRenderer.invoke('local:loginStart', name, flowId),
     loginStep: (name, processId, stepId, type, data) => ipcRenderer.invoke('local:loginStep', name, processId, stepId, type, data),
     loginCancel: (name, processId) => ipcRenderer.invoke('local:loginCancel', name, processId),

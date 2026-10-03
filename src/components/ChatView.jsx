@@ -10,7 +10,7 @@ import { isMuted, isStarred, toggleStar } from '../chatmeta.js';
 import { useClientTick } from '../hooks.js';
 import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
-import { replyToId, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
+import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
@@ -284,6 +284,20 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const lastMine = [...events].reverse().find((e) => e.getSender() === me);
 
   const typing = room.getMembers().filter((m) => m.typing && m.userId !== me);
+  // WhatsApp's "recording audio…" arrives as typing; ask the bridge which of them are recording.
+  const [recordingIds, setRecordingIds] = useState([]);
+  const typingKey = typing.map((m) => m.userId).join(',');
+  useEffect(() => {
+    const ask = window.relay.local?.recording;
+    if (!typingKey || !ask || !/^whatsapp/.test(info.network || '')) { setRecordingIds([]); return undefined; }
+    let alive = true;
+    const poll = () => ask(room.roomId).then((ids) => alive && setRecordingIds(ids || []));
+    poll();
+    const t = setInterval(poll, 1500);
+    return () => { alive = false; clearInterval(t); };
+  }, [typingKey, room.roomId, info.network]);
+  const recording = typing.filter((m) => recordingIds.includes(m.userId));
+  const writing = typing.filter((m) => !recordingIds.includes(m.userId));
 
   const messageProps = (ev) => ({
     client: client,
@@ -368,10 +382,16 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
             </div>
           ) : loadingOlder ? <div className="timeline-loading"><div className="spinner small" /></div> : <div className="timeline-pad" />}
           {rows}
-          {typing.length > 0 && (
+          {recording.length > 0 && (
+            <div className="typing recording">
+              <svg className="rec-mic" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2Z" /></svg>
+              {recording.length === 1 ? `${cleanName(recording[0].name)} is recording audio` : `${recording.length} people are recording audio`}
+            </div>
+          )}
+          {writing.length > 0 && (
             <div className="typing">
               <span className="dots"><i /><i /><i /></span>
-              {typing.length === 1 ? `${typing[0].name} is typing` : `${typing.length} people are typing`}
+              {writing.length === 1 ? `${cleanName(writing[0].name)} is typing` : `${writing.length} people are typing`}
             </div>
           )}
         </div>

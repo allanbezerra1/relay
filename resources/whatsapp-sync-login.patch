@@ -61,7 +61,7 @@ index d7261d3..8210a37 100644
  		err = wa.syncMismatchingGhosts(wa.Bridge.BackgroundCtx)
  		if err != nil {
 diff --git a/pkg/connector/handlewhatsapp.go b/pkg/connector/handlewhatsapp.go
-index 5381311..bd3ec0b 100644
+index 5381311..2160905 100644
 --- a/pkg/connector/handlewhatsapp.go
 +++ b/pkg/connector/handlewhatsapp.go
 @@ -79,6 +79,9 @@ func (wa *WhatsAppClient) handleWAEvent(rawEvt any) (success bool) {
@@ -83,12 +83,23 @@ index 5381311..bd3ec0b 100644
  	case *events.PushNameSetting:
  		// Send presence available when connecting and when the pushname is changed.
  		// This makes sure that outgoing messages always have the right pushname.
+@@ -542,6 +545,10 @@ func (wa *WhatsAppClient) handleWAChatPresence(ctx context.Context, evt *events.
+ 	if evt.State == types.ChatPresencePaused {
+ 		timeout = 0
+ 	}
++	// Relay patch: Matrix typing has no "recording" kind and the Matrix side drops it, so send it as
++	// typing and remember it for Relay's /v3/relay/recording (see relay_presence.go).
++	wa.relayNoteRecording(evt.Chat, evt.Sender, typingType == bridgev2.TypingTypeRecordingMedia && timeout > 0, timeout)
++	typingType = bridgev2.TypingTypeText
+ 
+ 	wa.UserLogin.QueueRemoteEvent(&simplevent.Typing{
+ 		EventMeta: simplevent.EventMeta{
 diff --git a/pkg/connector/relay_presence.go b/pkg/connector/relay_presence.go
 new file mode 100644
-index 0000000..ea26f41
+index 0000000..a8ee400
 --- /dev/null
 +++ b/pkg/connector/relay_presence.go
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,127 @@
 +// Relay patch: typing indicators.
 +//
 +// WhatsApp only sends "typing…" to clients that are online, and for one-to-one chats only after
@@ -106,6 +117,8 @@ index 0000000..ea26f41
 +	"time"
 +
 +	"go.mau.fi/whatsmeow/types"
++
++	"go.mau.fi/mautrix-whatsapp/pkg/waid"
 +	"maunium.net/go/mautrix/bridgev2"
 +	"maunium.net/go/mautrix/bridgev2/networkid"
 +)
@@ -115,14 +128,43 @@ index 0000000..ea26f41
 +var (
 +	relayPresenceLock  sync.Mutex
 +	relayOfflineTimers = map[*WhatsAppClient]*time.Timer{}
-+	relaySubscribed    = map[string]time.Time{} // login|jid -> last SubscribePresence
++	relaySubscribed    = map[string]time.Time{}            // login|jid -> last SubscribePresence
++	relayRecording     = map[string]map[string]time.Time{} // login|chat -> user ID -> recording until
 +)
++
++func (wa *WhatsAppClient) relayNoteRecording(chat, sender types.JID, recording bool, timeout time.Duration) {
++	relayPresenceLock.Lock()
++	defer relayPresenceLock.Unlock()
++	key := string(wa.UserLogin.ID) + "|" + chat.ToNonAD().String()
++	user := string(waid.MakeUserID(sender))
++	if !recording {
++		delete(relayRecording[key], user)
++		return
++	}
++	if relayRecording[key] == nil {
++		relayRecording[key] = map[string]time.Time{}
++	}
++	relayRecording[key][user] = time.Now().Add(timeout)
++}
 +
 +func (wa *WhatsAppConnector) relayRegisterRoutes() {
 +	p, ok := wa.Bridge.Matrix.(bridgev2.MatrixConnectorWithProvisioning)
 +	if !ok || p.GetProvisioning() == nil || p.GetProvisioning().GetRouter() == nil {
 +		return
 +	}
++	p.GetProvisioning().GetRouter().HandleFunc("GET /v3/relay/recording", func(w http.ResponseWriter, r *http.Request) {
++		key := r.URL.Query().Get("login_id") + "|" + r.URL.Query().Get("chat")
++		users := []string{}
++		relayPresenceLock.Lock()
++		for user, until := range relayRecording[key] {
++			if time.Now().Before(until) {
++				users = append(users, user)
++			}
++		}
++		relayPresenceLock.Unlock()
++		w.Header().Set("Content-Type", "application/json")
++		_ = json.NewEncoder(w).Encode(map[string]any{"recording": users})
++	})
 +	p.GetProvisioning().GetRouter().HandleFunc("POST /v3/relay/viewing", func(w http.ResponseWriter, r *http.Request) {
 +		var body struct {
 +			LoginID string `json:"login_id"`

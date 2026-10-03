@@ -802,7 +802,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 5;
+const PATCH_REV = 6;
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
@@ -949,9 +949,7 @@ function favoriteStickers() {
 
 const viewingTarget = new Map(); // roomId -> { login, chat } | null
 
-/** Tell the WhatsApp bridge a chat is open (active) or not, so it can receive "typing…". */
-async function whatsappViewing(roomId, active) {
-  if (!isBridgeInstalled('whatsapp') || procs.get('whatsapp')?.status !== 'running') return;
+function viewingTargetFor(roomId) {
   if (!viewingTarget.has(roomId)) {
     viewingTarget.set(roomId, withWhatsAppDb((db) => {
       const p = db.prepare('SELECT id, receiver FROM portal WHERE mxid = ?').get(roomId);
@@ -960,7 +958,22 @@ async function whatsappViewing(roomId, active) {
       return login ? { login, chat: p.id } : null;
     }));
   }
-  const t = viewingTarget.get(roomId);
+  return viewingTarget.get(roomId);
+}
+
+/** Who is recording a voice message in a WhatsApp chat right now: ghost MXIDs. */
+async function whatsappRecording(roomId) {
+  if (procs.get('whatsapp')?.status !== 'running') return [];
+  const t = viewingTargetFor(roomId);
+  if (!t) return [];
+  const res = await prov('whatsapp', 'GET', `/relay/recording?login_id=${encodeURIComponent(t.login)}&chat=${encodeURIComponent(t.chat)}`).catch(() => null);
+  return (res?.recording || []).map((u) => `@${BRIDGES.whatsapp.ghost || 'whatsapp'}_${u}:${SERVER_NAME}`);
+}
+
+/** Tell the WhatsApp bridge a chat is open (active) or not, so it can receive "typing…". */
+async function whatsappViewing(roomId, active) {
+  if (!isBridgeInstalled('whatsapp') || procs.get('whatsapp')?.status !== 'running') return;
+  const t = viewingTargetFor(roomId);
   if (!t) return;
   await prov('whatsapp', 'POST', '/relay/viewing', { login_id: t.login, chat: t.chat, active: !!active }).catch(() => {});
 }
@@ -1071,7 +1084,7 @@ module.exports = {
   HS_URL, MY_ID, BRIDGES,
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
-  favoriteStickers, syncFavoriteStickers, whatsappViewing, createGroup,
+  favoriteStickers, syncFavoriteStickers, whatsappViewing, whatsappRecording, createGroup,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
 };
