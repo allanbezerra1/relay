@@ -48,6 +48,7 @@ const P = {
   get venv() { return path.join(root(), 'synapse', 'venv'); },
   get python() { return path.join(root(), 'synapse', 'venv', 'bin', 'python'); },
   get hsConfig() { return path.join(root(), 'synapse', 'homeserver.yaml'); },
+  get synapseDb() { return path.join(root(), 'synapse', 'homeserver.db'); },
   get bin() { return path.join(root(), 'bin'); },
   get logs() { return path.join(root(), 'logs'); },
   bridge: (n) => path.join(root(), 'bridges', n),
@@ -798,7 +799,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 2;
+const PATCH_REV = 3;
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
@@ -816,8 +817,9 @@ async function ensurePatchedWhatsApp() {
       const out = path.join(P.bin, 'mautrix-whatsapp.patched');
       await run(GO, ['build', '-tags', 'goolm', '-ldflags', '-s -w', '-o', out, './cmd/mautrix-whatsapp'], { cwd: work, env: { ...process.env, CGO_ENABLED: '1' }, maxBuffer: 1 << 24 });
       await fsp.rename(out, P.binary('whatsapp'));
+      // r2 fixed refused photos: resync them through every account once.
+      if (!/\+r([2-9]|\d\d)$/.test(s.patchedWhatsApp || '')) s.avatarsSyncedAt = {};
       s.patchedWhatsApp = want;
-      s.avatarsSyncedAt = {}; // resync photos through every account with the new patch
       saveState();
       console.log(`Built patched WhatsApp bridge ${want}`);
       await restartBridge('whatsapp');
@@ -877,6 +879,69 @@ async function healContactNames() {
   console.log(`Asked the WhatsApp bridge to resync contacts (${stale} stale names).`);
 }
 
+// ---------- Favorite stickers (patched WhatsApp bridge, r3+) ----------
+
+const patchedReady = (s = loadState()) => s.patchedWhatsApp && s.patchedWhatsApp === `${s.bridgeVersions?.whatsapp}+r${PATCH_REV}`;
+
+/**
+ * Ask the bridge for each account's full favorite sticker list, about once a day per account.
+ * The bridge notes each finished sync in the file (`_synced`); requests are spaced 30 min apart
+ * so one that got lost (bridge restarting) is simply retried.
+ */
+async function syncFavoriteStickers() {
+  await ensurePatchedWhatsApp().catch(() => false);
+  if (!patchedReady() || procs.get('whatsapp')?.status !== 'running') return;
+  const s = loadState();
+  s.favStickersAskedAt ||= {};
+  const synced = readFavoriteFile()._synced || {};
+  const logins = (withWhatsAppDb((db) => db.prepare('SELECT id FROM user_login').all()) || []).map((r) => r.id);
+  const now = Date.now();
+  const todo = logins.filter((id) => now - (synced[id]?.ts || 0) > 24 * 3600 * 1000 && now - (s.favStickersAskedAt[id] || 0) > 30 * 60 * 1000);
+  for (const id of todo) {
+    await bridgeCommand('whatsapp', `sync favorite-stickers --login=${id}`);
+    s.favStickersAskedAt[id] = now;
+  }
+  if (todo.length) saveState();
+}
+
+function readFavoriteFile() {
+  try { return JSON.parse(fs.readFileSync(path.join(P.bridge('whatsapp'), 'favorite-stickers.json'), 'utf8')); } catch { return {}; }
+}
+
+/**
+ * Favorite stickers the bridge has collected: [{ key, login, mxc, mimetype, w, h, size, favorite, ts }].
+ * WhatsApp's download links for older favorites expire, so a favorite without media is looked up
+ * by its hash (the index key is the sticker's SHA-256) among the media already on the local
+ * server, i.e. any copy of that sticker someone sent in a chat.
+ */
+function favoriteStickers() {
+  const all = readFavoriteFile();
+  const out = [];
+  for (const [login, items] of Object.entries(all)) {
+    if (login === '_synced') continue;
+    for (const [key, v] of Object.entries(items || {})) out.push({ key, login, ...v });
+  }
+  const missing = out.filter((s) => s.favorite && !s.mxc && !s.lottie);
+  if (missing.length && fs.existsSync(P.synapseDb)) {
+    const { DatabaseSync } = require('node:sqlite');
+    const db = new DatabaseSync(P.synapseDb, { readOnly: true });
+    try {
+      const q = db.prepare('SELECT media_id, media_type, media_length FROM local_media_repository WHERE sha256 = ? AND quarantined_by IS NULL LIMIT 1');
+      for (const s of missing) {
+        const hex = Buffer.from(s.key, 'base64').toString('hex');
+        if (hex.length !== 64) continue;
+        const row = q.get(hex);
+        if (row) Object.assign(s, { mxc: `mxc://${SERVER_NAME}/${row.media_id}`, mimetype: row.media_type, size: row.media_length, fromChat: true });
+      }
+    } catch (err) {
+      console.error('Sticker lookup failed:', err.message);
+    } finally {
+      db.close();
+    }
+  }
+  return out.map(({ path: _p, url: _u, error: _e, ...s }) => s);
+}
+
 let tagTimer = null;
 function scheduleTagImport() {
   clearInterval(tagTimer);
@@ -884,7 +949,11 @@ function scheduleTagImport() {
   setTimeout(runIt, 20000);
   setTimeout(() => healContactNames().catch((err) => console.error('Contact resync failed:', err)), 60000);
   // New chats keep arriving during the first sync; pick them up too.
-  tagTimer = setInterval(runIt, 10 * 60 * 1000);
+  setTimeout(() => syncFavoriteStickers().catch((err) => console.error('Favorite sticker sync failed:', err)), 90000);
+  tagTimer = setInterval(() => {
+    runIt();
+    syncFavoriteStickers().catch(() => {});
+  }, 10 * 60 * 1000);
 }
 
 // ---------- Starting a direct chat from a group member ----------
@@ -966,6 +1035,7 @@ module.exports = {
   HS_URL, MY_ID, BRIDGES,
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
+  favoriteStickers, syncFavoriteStickers,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
 };

@@ -197,6 +197,7 @@ ipcMain.handle('local:status', () => local.status());
 ipcMain.handle('local:install', () => local.install((step, message) => send('local:progress', { step, message })));
 ipcMain.handle('local:start', () => local.start());
 ipcMain.handle('local:credentials', () => local.credentials());
+ipcMain.handle('local:favoriteStickers', () => local.favoriteStickers());
 ipcMain.handle('local:loginStart', (_e, name, flowId) => local.loginStart(name, flowId));
 ipcMain.handle('local:loginStep', (_e, name, processId, stepId, type, data) => local.loginStep(name, processId, stepId, type, data));
 ipcMain.handle('local:loginCancel', (_e, name, processId) => local.loginCancel(name, processId));

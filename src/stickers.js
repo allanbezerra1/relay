@@ -32,9 +32,9 @@ export function useStickers(client) {
   return list;
 }
 
-async function write(client, images) {
+async function write(client, images, extra = {}) {
   const c = pack(client);
-  await client.setAccountData(TYPE, { ...c, pack: c.pack || { display_name: 'My stickers' }, images });
+  await client.setAccountData(TYPE, { ...c, pack: c.pack || { display_name: 'My stickers' }, ...extra, images });
 }
 
 const newId = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -79,9 +79,48 @@ export async function importStickers(client, files) {
 }
 
 export async function removeSticker(client, id) {
-  const images = pack(client).images;
+  const c = pack(client);
+  const images = c.images;
+  // A WhatsApp favorite removed here stays removed (until it's favorited again on the phone).
+  const wa = images[id]?.['dev.relay.wa'];
+  const dismissed = wa ? [...new Set([...(c['dev.relay.dismissed'] || []), wa])] : c['dev.relay.dismissed'];
   delete images[id];
-  await write(client, images);
+  await write(client, images, dismissed ? { 'dev.relay.dismissed': dismissed } : {});
+}
+
+/**
+ * Mirror the WhatsApp favorite stickers that the (patched) local bridge collected into this pack:
+ * new favorites are added, ones unfavorited on the phone are removed.
+ */
+export async function importWhatsAppFavorites(client) {
+  const list = await window.relay?.local?.favoriteStickers?.();
+  if (!list?.length) return;
+  const byKey = new Map();
+  for (const s of list) {
+    const prev = byKey.get(s.key);
+    // The same sticker can be on several accounts: favorite on any of them counts.
+    if (!prev || (s.favorite && s.mxc && !(prev.favorite && prev.mxc)) || (!prev.favorite && s.ts > prev.ts)) byKey.set(s.key, s);
+  }
+  const c = pack(client);
+  const images = c.images;
+  let dismissed = c['dev.relay.dismissed'] || [];
+  let changed = false;
+  for (const [key, s] of byKey) {
+    const id = `wa:${key}`;
+    if (s.favorite && s.mxc) {
+      if (!images[id] && !dismissed.includes(key)) {
+        images[id] = {
+          url: s.mxc, body: 'Sticker', usage: ['sticker'], 'dev.relay.added': s.ts, 'dev.relay.wa': key,
+          info: { mimetype: s.mimetype || 'image/webp', w: s.w, h: s.h, size: s.size },
+        };
+        changed = true;
+      }
+    } else if (!s.favorite) {
+      if (images[id]) { delete images[id]; changed = true; }
+      if (dismissed.includes(key)) { dismissed = dismissed.filter((k) => k !== key); changed = true; }
+    }
+  }
+  if (changed) await write(client, images, { 'dev.relay.dismissed': dismissed });
 }
 
 export async function sendSticker(client, roomId, sticker, replyTo = null) {

@@ -15,6 +15,7 @@ import Avatar from './Avatar.jsx';
 import Logo from './Logo.jsx';
 import NetIcon from './NetIcon.jsx';
 import { useContextMenu } from './ContextMenu.jsx';
+import { importWhatsAppFavorites } from '../stickers.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -133,6 +134,15 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [query, setQuery] = useState('');
   const [switcher, setSwitcher] = useState(false);
   const [settings, setSettings] = useState(null); // null | section id
+
+  // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
+  useEffect(() => {
+    if (!isLocal) return undefined;
+    const run = () => importWhatsAppFavorites(client).catch((err) => console.warn('Sticker import failed', err));
+    const first = setTimeout(run, 5000);
+    const every = setInterval(run, 2 * 60 * 1000);
+    return () => { clearTimeout(first); clearInterval(every); };
+  }, [client, isLocal]);
   const searchRef = useRef(null);
   const [railMenu, openRailMenu] = useContextMenu();
 

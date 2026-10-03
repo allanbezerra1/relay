@@ -659,7 +659,7 @@ html, body, #root { overflow: hidden; }
 .meta-edited { font-style: italic; margin-right: 2px; }
 .meta .tick.read { color: #7ee7ff; }
 .msg.theirs .meta .tick.read { color: var(--accent-2); }
-.meta.overlay {
+.meta.on-media {
   position: absolute; right: 8px; bottom: 8px; top: auto; float: none; margin: 0; padding: 3px 7px;
   border-radius: 10px; background: rgba(0, 0, 0, 0.45); color: #fff; backdrop-filter: blur(6px);
 }
@@ -960,7 +960,7 @@ html, body, #root { overflow: hidden; }
 .bulk-actions > button:hover, .bulk-label-wrap > button:hover { background: var(--hover); color: var(--text); }
 .bulk-label-wrap { flex: 1; position: relative; }
 .label-menu.bulk { left: auto; right: 0; width: 200px; }
-.media .meta.overlay { left: auto; width: auto; display: inline-flex; }
+.media .meta.on-media { left: auto; width: auto; display: inline-flex; }
 .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -14px; padding-right: 14px; }
 .chips::-webkit-scrollbar { display: none; }
 .chips button { flex-shrink: 0; }
@@ -1465,7 +1465,7 @@ body { background: var(--panel); }
 .picker-modes button.on { background: var(--panel-2, var(--active)); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
 .sticker-panel { border-radius: 10px; outline: 2px dashed transparent; outline-offset: -2px; }
 .sticker-panel.over { outline-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.sticker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 268px; overflow-y: auto; padding: 2px; }
+.sticker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-height: 268px; overflow: hidden auto; padding: 2px; }
 .sticker-cell { position: relative; }
 .sticker-cell .sticker, .sticker-add {
   width: 100%; aspect-ratio: 1; border: 0; border-radius: 10px; background: none; padding: 4px; display: grid; place-items: center;

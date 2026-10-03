@@ -73,7 +73,7 @@ function Linkified({ text, mentions, me }) {
 function Meta({ time, mine, receipt: receiptInfo, edited, overlay, starred }) {
   const receipt = receiptInfo?.state ?? receiptInfo;
   return (
-    <span className={`meta ${overlay ? 'overlay' : ''}`} title={mine && receiptInfo?.title ? receiptInfo.title : undefined}>
+    <span className={`meta ${overlay ? 'on-media' : ''}`} title={mine && receiptInfo?.title ? receiptInfo.title : undefined}>
       {starred && <svg className="meta-star" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d={I.star} /></svg>}
       {edited && <span className="meta-edited">edited</span>}
       <span>{time}</span>

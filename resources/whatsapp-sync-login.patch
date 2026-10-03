@@ -1,5 +1,5 @@
 diff --git a/pkg/connector/commands.go b/pkg/connector/commands.go
-index 037d24e..b251b22 100644
+index 037d24e..4ceacd0 100644
 --- a/pkg/connector/commands.go
 +++ b/pkg/connector/commands.go
 @@ -31,6 +31,7 @@ import (
@@ -32,6 +32,244 @@ index 037d24e..b251b22 100644
  	if login == nil {
  		ce.Reply("Login not found")
  		return
+@@ -116,6 +132,15 @@ func fnSync(ce *commands.Event) {
+ 			GetChatInfoFunc: wa.GetChatInfo,
+ 		})
+ 		ce.React("✅")
++	case "favorite-stickers":
++		// Relay patch: see relay_stickers.go
++		go func() {
++			ctx := wa.UserLogin.Log.WithContext(wa.Main.Bridge.BackgroundCtx)
++			if err := wa.relaySyncFavoriteStickers(ctx); err != nil {
++				wa.UserLogin.Log.Warn().Err(err).Msg("Favorite sticker sync finished with errors")
++			}
++		}()
++		ce.React("✅")
+ 	case "groups":
+ 		groups, err := wa.Client.GetJoinedGroups(ce.Ctx)
+ 		if err != nil {
+diff --git a/pkg/connector/handlewhatsapp.go b/pkg/connector/handlewhatsapp.go
+index 5381311..c52bc01 100644
+--- a/pkg/connector/handlewhatsapp.go
++++ b/pkg/connector/handlewhatsapp.go
+@@ -79,6 +79,9 @@ func (wa *WhatsAppClient) handleWAEvent(rawEvt any) (success bool) {
+ 	log := wa.UserLogin.Log
+ 	ctx := log.WithContext(wa.Main.Bridge.BackgroundCtx)
+ 	wa.MC.OnWhatsAppEvent(rawEvt)
++	if wa.relayIgnoreDuringStickerSync(rawEvt) {
++		return true
++	}
+ 
+ 	success = true
+ 	switch evt := rawEvt.(type) {
+@@ -147,7 +150,7 @@ func (wa *WhatsAppClient) handleWAEvent(rawEvt any) (success bool) {
+ 	case *events.AppStateSyncError:
+ 		wa.handleWAAppStateSyncError(ctx, evt)
+ 	case *events.AppState:
+-		// Intentionally ignored
++		wa.relayHandleAppState(ctx, evt) // Relay patch: favorite stickers
+ 	case *events.PushNameSetting:
+ 		// Send presence available when connecting and when the pushname is changed.
+ 		// This makes sure that outgoing messages always have the right pushname.
+diff --git a/pkg/connector/relay_stickers.go b/pkg/connector/relay_stickers.go
+new file mode 100644
+index 0000000..bcb09e1
+--- /dev/null
++++ b/pkg/connector/relay_stickers.go
+@@ -0,0 +1,193 @@
++// Relay patch: favorite stickers.
++//
++// WhatsApp syncs your favorite stickers to linked devices through app state ("favoriteSticker"
++// mutations), which the bridge normally ignores. This keeps them in favorite-stickers.json in the
++// bridge's working directory, with each sticker uploaded to Matrix, so Relay can offer them in its
++// sticker picker. `!wa sync favorite-stickers --login=<id>` fetches the full list; later changes
++// arrive on their own.
++package connector
++
++import (
++	"context"
++	"encoding/base64"
++	"encoding/json"
++	"errors"
++	"os"
++	"sync"
++	"time"
++
++	"go.mau.fi/whatsmeow"
++	"go.mau.fi/whatsmeow/appstate"
++	"go.mau.fi/whatsmeow/proto/waSyncAction"
++	"go.mau.fi/whatsmeow/types/events"
++)
++
++const relayStickerFile = "favorite-stickers.json"
++
++type relayFavoriteSticker struct {
++	MXC       string `json:"mxc,omitempty"`
++	Mimetype  string `json:"mimetype,omitempty"`
++	Width     uint32 `json:"w,omitempty"`
++	Height    uint32 `json:"h,omitempty"`
++	Size      int    `json:"size,omitempty"`
++	Favorite  bool   `json:"favorite"`
++	Lottie    bool   `json:"lottie,omitempty"`
++	Timestamp int64  `json:"ts"`
++	Error     string `json:"error,omitempty"`
++	Path      string `json:"path,omitempty"`
++	URL       string `json:"url,omitempty"`
++}
++
++var (
++	relayStickerLock    sync.Mutex
++	relayStickerSyncing sync.Map // *WhatsAppClient -> struct{}
++)
++
++func relayLoadStickers() map[string]map[string]*relayFavoriteSticker {
++	out := map[string]map[string]*relayFavoriteSticker{}
++	if data, err := os.ReadFile(relayStickerFile); err == nil {
++		_ = json.Unmarshal(data, &out)
++	}
++	return out
++}
++
++func relaySaveStickers(all map[string]map[string]*relayFavoriteSticker) error {
++	data, err := json.MarshalIndent(all, "", "  ")
++	if err != nil {
++		return err
++	}
++	tmp := relayStickerFile + ".tmp"
++	if err = os.WriteFile(tmp, data, 0o600); err != nil {
++		return err
++	}
++	return os.Rename(tmp, relayStickerFile)
++}
++
++// relayIgnoreDuringStickerSync drops the chat-state events (archive, pin, mute, …) that a forced
++// full app state resync replays, so fetching stickers doesn't touch anything else.
++func (wa *WhatsAppClient) relayIgnoreDuringStickerSync(rawEvt any) bool {
++	if _, syncing := relayStickerSyncing.Load(wa); !syncing {
++		return false
++	}
++	switch rawEvt.(type) {
++	case *events.Archive, *events.Pin, *events.Mute, *events.Star, *events.DeleteForMe, *events.DeleteChat,
++		*events.ClearChat, *events.MarkChatAsRead, *events.Contact, *events.PushNameSetting,
++		*events.UnarchiveChatsSetting, *events.UserStatusMute, *events.LabelEdit, *events.LabelAssociationChat,
++		*events.LabelAssociationMessage, *events.AppStateSyncComplete:
++		return true
++	}
++	return false
++}
++
++func (wa *WhatsAppClient) relayHandleAppState(ctx context.Context, evt *events.AppState) {
++	if len(evt.Index) < 2 || evt.Index[0] != appstate.IndexFavoriteSticker {
++		return
++	}
++	action := evt.SyncActionValue.GetStickerAction()
++	if action == nil {
++		return
++	}
++	key := evt.Index[1]
++	ts := evt.SyncActionValue.GetTimestamp()
++	go wa.relayStoreSticker(ctx, key, ts, action)
++}
++
++func (wa *WhatsAppClient) relayStoreSticker(ctx context.Context, key string, ts int64, action *waSyncAction.StickerAction) {
++	log := wa.UserLogin.Log.With().Str("relay_sticker", key).Logger()
++	login := string(wa.UserLogin.ID)
++
++	relayStickerLock.Lock()
++	existing := relayLoadStickers()[login][key]
++	relayStickerLock.Unlock()
++	if existing != nil && existing.Timestamp > ts {
++		return
++	}
++	entry := &relayFavoriteSticker{
++		Mimetype:  action.GetMimetype(),
++		Width:     action.GetWidth(),
++		Height:    action.GetHeight(),
++		Favorite:  action.GetIsFavorite(),
++		Lottie:    action.GetIsLottie(),
++		Timestamp: ts,
++		Path:      action.GetDirectPath(),
++		URL:       action.GetURL(),
++	}
++	if existing != nil && existing.MXC != "" {
++		entry.MXC, entry.Size = existing.MXC, existing.Size
++	}
++	if entry.Favorite && entry.MXC == "" && !entry.Lottie {
++		data, err := wa.relayDownloadSticker(ctx, key, action)
++		if err != nil {
++			log.Warn().Err(err).Msg("Failed to download favorite sticker")
++			entry.Error = err.Error()
++		} else if mxc, _, err := wa.Main.Bridge.Bot.UploadMedia(ctx, "", data, "sticker.webp", entry.Mimetype); err != nil {
++			log.Warn().Err(err).Msg("Failed to upload favorite sticker")
++			entry.Error = err.Error()
++		} else {
++			entry.MXC = string(mxc)
++			entry.Size = len(data)
++		}
++	}
++
++	relayStickerLock.Lock()
++	defer relayStickerLock.Unlock()
++	all := relayLoadStickers()
++	if all[login] == nil {
++		all[login] = map[string]*relayFavoriteSticker{}
++	}
++	all[login][key] = entry
++	if err := relaySaveStickers(all); err != nil {
++		log.Err(err).Msg("Failed to save favorite stickers")
++	}
++}
++
++func (wa *WhatsAppClient) relayDownloadSticker(ctx context.Context, key string, action *waSyncAction.StickerAction) ([]byte, error) {
++	if action.GetDirectPath() == "" {
++		return nil, errors.New("no download path")
++	}
++	// The app state index is the sticker's plaintext SHA-256.
++	fileHash, _ := base64.StdEncoding.DecodeString(key)
++	if len(fileHash) != 32 {
++		fileHash = nil
++	}
++	var data []byte
++	var err error
++	for _, mms := range []string{"image", "sticker"} {
++		data, err = wa.Client.DownloadMediaWithPath(ctx, action.GetDirectPath(), action.GetFileEncSHA256(), fileHash,
++			action.GetMediaKey(), whatsmeow.MediaImage, mms, fileHash == nil)
++		if errors.Is(err, whatsmeow.ErrInvalidMediaSHA256) && fileHash == nil && len(data) > 0 {
++			err = nil
++		}
++		if err == nil {
++			return data, nil
++		}
++	}
++	return nil, err
++}
++
++// relaySyncFavoriteStickers re-reads the app state collections from scratch so every existing
++// favorite sticker is replayed as an AppState event.
++func (wa *WhatsAppClient) relaySyncFavoriteStickers(ctx context.Context) error {
++	relayStickerSyncing.Store(wa, struct{}{})
++	prevEmit := wa.Client.EmitAppStateEventsOnFullSync
++	wa.Client.EmitAppStateEventsOnFullSync = true
++	defer func() {
++		wa.Client.EmitAppStateEventsOnFullSync = prevEmit
++		relayStickerSyncing.Delete(wa)
++	}()
++	var errs []error
++	for _, name := range []appstate.WAPatchName{appstate.WAPatchRegularLow, appstate.WAPatchRegular, appstate.WAPatchRegularHigh} {
++		if err := wa.Client.FetchAppState(ctx, name, true, false); err != nil {
++			errs = append(errs, err)
++		}
++	}
++	relayStickerLock.Lock()
++	all := relayLoadStickers()
++	if all["_synced"] == nil {
++		all["_synced"] = map[string]*relayFavoriteSticker{}
++	}
++	all["_synced"][string(wa.UserLogin.ID)] = &relayFavoriteSticker{Timestamp: time.Now().UnixMilli()}
++	_ = relaySaveStickers(all)
++	relayStickerLock.Unlock()
++	return errors.Join(errs...)
++}
 diff --git a/pkg/connector/userinfo.go b/pkg/connector/userinfo.go
 index c78b0a8..268cf94 100644
 --- a/pkg/connector/userinfo.go
