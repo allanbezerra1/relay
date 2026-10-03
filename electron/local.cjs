@@ -259,6 +259,9 @@ async function configureBridge(name) {
     doc.setIn(['database', 'uri'], db.uri);
     doc.setIn(['appservice', 'public_address'], null);
     doc.setIn(['bridge', 'permissions'], perms);
+    // Per-message send status (com.beeper.message_send_status): a failed send, and in DMs the
+    // "delivered" state between sent (one tick) and read (blue ticks).
+    doc.setIn(['matrix', 'message_status_events'], true);
     // Archive / pin / mute changes made on the phone keep syncing, not only when a chat is first created.
     doc.setIn(['bridge', 'tag_only_on_create'], false);
     doc.setIn(['bridge', 'mute_only_on_create'], false);

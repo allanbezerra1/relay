@@ -231,11 +231,32 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     if (d.toDateString() === new Date(now - 86400000).toDateString()) return `yesterday at ${time}`;
     return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
   };
+  // Bridge send statuses: failures, and which of my messages reached the other phone (DMs only).
+  const MSS = 'com.beeper.message_send_status';
+  const sendStatus = new Map();
+  let deliveredIndex = -1;
+  for (const e of room.getLiveTimeline().getEvents()) {
+    if (e.getType() !== MSS) continue;
+    const c = e.getContent();
+    const target = c.relates_to?.event_id || c['m.relates_to']?.event_id;
+    if (!target) continue;
+    sendStatus.set(target, c);
+    if (c.delivered_to_users?.length) deliveredIndex = Math.max(deliveredIndex, indexOf.get(target) ?? -1);
+  }
+
   const receiptFor = (ev) => {
     if (ev.status) return { state: 'sending', title: 'Sending…' };
     const i = indexOf.get(ev.getId()) ?? Infinity;
     const seen = readers.filter((r) => r.index >= i);
-    if (!seen.length) return { state: 'sent', title: 'Sent' };
+    if (!seen.length) {
+      const st = sendStatus.get(ev.getId());
+      // Delivery is in order: a later message that arrived means this one did too.
+      if (i <= deliveredIndex) return { state: 'delivered', title: 'Delivered', short: 'Delivered' };
+      if (st && (st.status === 'FAIL' || st.status === 'RETRIABLE')) {
+        return { state: 'failed', title: st.message || 'Not delivered', short: 'Not delivered' };
+      }
+      return { state: 'sent', title: 'Sent' };
+    }
     if (!isGroup) {
       const when = seenWhen(seen[0].ts);
       return { state: 'read', title: when ? `Seen ${/^\d/.test(when) ? 'at ' : ''}${when}` : 'Seen', short: when ? `Seen ${when}` : 'Seen' };

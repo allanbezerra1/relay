@@ -658,6 +658,7 @@ html, body, #root { overflow: hidden; }
 .msg.mine .meta { color: rgba(255, 255, 255, 0.72); }
 .meta-edited { font-style: italic; margin-right: 2px; }
 .meta .tick.read { color: #7ee7ff; }
+.meta .tick.failed { color: #ff8a80; }
 .msg.theirs .meta .tick.read { color: var(--accent-2); }
 .meta.on-media {
   position: absolute; right: 8px; bottom: 8px; top: auto; float: none; margin: 0; padding: 3px 7px;

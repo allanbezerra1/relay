@@ -83,6 +83,12 @@ function Meta({ time, mine, receipt: receiptInfo, edited, overlay, starred }) {
       {mine && receipt === 'sent' && (
         <svg className="tick" viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" /></svg>
       )}
+      {mine && receipt === 'delivered' && (
+        <svg className="tick" viewBox="0 0 28 24" width="18" height="15"><path fill="currentColor" d="M7.5 16.2 3.3 12l-1.4 1.4L7.5 19l12-12-1.4-1.4L7.5 16.2Zm6.6 0-1-1-1.4 1.4 2.4 2.4 12-12-1.4-1.4-10.6 10.6Z" /></svg>
+      )}
+      {mine && receipt === 'failed' && (
+        <svg className="tick failed" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v7h-2V7Zm0 9h2v2h-2v-2Z" /></svg>
+      )}
       {mine && receipt === 'read' && (
         <svg className="tick read" viewBox="0 0 28 24" width="18" height="15"><path fill="currentColor" d="M7.5 16.2 3.3 12l-1.4 1.4L7.5 19l12-12-1.4-1.4L7.5 16.2Zm6.6 0-1-1-1.4 1.4 2.4 2.4 12-12-1.4-1.4-10.6 10.6Z" /></svg>
       )}
