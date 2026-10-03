@@ -366,8 +366,9 @@ function spawnManaged(name, cmd, args, cwd) {
   out.write(`\n===== ${new Date().toISOString()} starting ${name} =====\n`);
   const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PYTHONUNBUFFERED: '1' } });
   entry.child = child;
-  child.stdout.pipe(out);
-  child.stderr.pipe(out);
+  // end: false: the log is closed in the exit handler below, after its last line.
+  child.stdout.pipe(out, { end: false });
+  child.stderr.pipe(out, { end: false });
   if (lineHandlers[name]) {
     let buf = '';
     child.stdout.on('data', (chunk) => {
@@ -387,9 +388,10 @@ function spawnManaged(name, cmd, args, cwd) {
   loadState().pids = pids;
   saveState();
 
-  child.on('exit', (code, signal) => {
-    out.write(`===== exited code=${code} signal=${signal} =====\n`);
-    out.end();
+  out.on('error', () => {});
+  // 'close' (not 'exit'): fires once stdout/stderr are drained too.
+  child.on('close', (code, signal) => {
+    if (!out.writableEnded) out.end(`===== exited code=${code} signal=${signal} =====\n`);
     if (!entry.wanted) { setStatus(name, 'stopped'); return; }
     // Crashed: restart with backoff (2s, 4s, 8s … max 60s).
     setStatus(name, 'crashed');
