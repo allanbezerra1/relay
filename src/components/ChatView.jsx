@@ -3,7 +3,7 @@ import { Direction, EventStatus } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
 import Message from './Message.jsx';
 import Composer from './Composer.jsx';
-import Lightbox from './Lightbox.jsx';
+import Lightbox, { roomGallery } from './Lightbox.jsx';
 import InfoPanel from './InfoPanel.jsx';
 import ForwardDialog, { forwardContent } from './ForwardDialog.jsx';
 import { isMuted, isStarred, toggleStar } from '../chatmeta.js';
@@ -28,6 +28,23 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const [replyTo, setReplyTo] = useState(null);
   const [editing, setEditing] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  // Open the viewer on a photo, able to page through the chat's photos and videos.
+  // Pages older history in until more photos/videos show up (or the chat's start is reached).
+  const loadOlderMedia = async () => {
+    const before = roomGallery(room).length;
+    for (let i = 0; i < 6; i++) {
+      const more = await client.paginateEventTimeline(room.getLiveTimeline(), { backwards: true, limit: 60 }).catch(() => false);
+      const now = roomGallery(room);
+      if (now.length > before) return now;
+      if (!more) return null;
+    }
+    return roomGallery(room);
+  };
+  const openMedia = (x) => {
+    const items = x?.eventId ? roomGallery(room) : [];
+    const index = items.findIndex((it) => it.eventId === x?.eventId);
+    setLightbox(index >= 0 ? { items, index, loadOlder: loadOlderMedia } : x);
+  };
   // Message multi-select + forwarding
   const [msgSel, setMsgSel] = useState(null); // null = not selecting, else Set of event ids
   const [forwarding, setForwarding] = useState(null); // events to forward
@@ -256,6 +273,11 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     if (c.delivered_to_users?.length) deliveredIndex = Math.max(deliveredIndex, indexOf.get(target) ?? -1);
   }
 
+  // Who read a message, newest first, for the "Seen by" list.
+  const seenList = (seen) => [...seen]
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .map((r) => ({ userId: r.userId, name: senderName(room, r.userId), avatar: memberAvatar(client, room, r.userId, 48), when: seenWhen(r.ts) }));
+
   const receiptFor = (ev) => {
     if (ev.status) return { state: 'sending', title: 'Sending…' };
     const i = indexOf.get(ev.getId()) ?? Infinity;
@@ -278,6 +300,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
       state: 'read',
       title: `Seen by ${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}`,
       short: `Seen by ${seen.length}`,
+      readers: seenList(seen),
     };
   };
   // Beeper-style status line under your newest message.
@@ -308,7 +331,8 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     avatar: memberAvatar(client, room, ev.getSender()),
     sender: senderName(room, ev.getSender()),
     receipt: ev.getSender() === me ? receiptFor(ev) : null,
-    statusLine: ev === lastMine && !ev.status ? receiptFor(ev).short || null : null,
+    statusLine: ev === lastMine && !ev.status ? receiptFor(ev) : null,
+    seenBy: isGroup && ev.getSender() === me && !ev.status ? () => receiptFor(ev).readers || [] : null,
     starred: isStarred(room, ev.getId()),
     selecting: !!msgSel,
     selected: !!msgSel?.has(ev.getId()),
@@ -324,7 +348,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     onEdit: startEdit,
     onDelete: remove,
     onRetry: (e) => client.resendEvent(e, room),
-    onOpenImage: setLightbox,
+    onOpenImage: openMedia,
     onOpenDirect: isGroup ? (userId) => actions.openDirect(userId, info) : undefined,
   });
 
@@ -385,13 +409,13 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
           {recording.length > 0 && (
             <div className="typing recording">
               <svg className="rec-mic" viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2Z" /></svg>
-              {recording.length === 1 ? `${cleanName(recording[0].name)} is recording audio` : `${recording.length} people are recording audio`}
+              {recording.length === 1 ? `${cleanName(recording[0].rawDisplayName || recording[0].name)} is recording audio` : `${recording.length} people are recording audio`}
             </div>
           )}
           {writing.length > 0 && (
             <div className="typing">
               <span className="dots"><i /><i /><i /></span>
-              {writing.length === 1 ? `${cleanName(writing[0].name)} is typing` : `${writing.length} people are typing`}
+              {writing.length === 1 ? `${cleanName(writing[0].rawDisplayName || writing[0].name)} is typing` : `${writing.length} people are typing`}
             </div>
           )}
         </div>
@@ -479,9 +503,9 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
       </div>
       {infoOpen && (
         <InfoPanel client={client} info={info} actions={actions} tick={tick}
-          onClose={toggleInfo} onOpenImage={setLightbox} onJump={jumpTo} />
+          onClose={toggleInfo} onOpenImage={openMedia} onJump={jumpTo} />
       )}
-      {lightbox && <Lightbox {...lightbox} onClose={() => setLightbox(null)} />}
+      {lightbox && <Lightbox client={client} {...lightbox} onClose={() => setLightbox(null)} />}
     </section>
   );
 }

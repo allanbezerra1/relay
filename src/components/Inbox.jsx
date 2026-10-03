@@ -273,6 +273,18 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     try { localStorage.setItem('relay.activeRoom', id || ''); } catch {}
   }, []);
 
+  // WhatsApp only sends "typing…" to online devices subscribed to the chat. While Relay is in
+  // front, stay online and subscribed to the most recent WhatsApp chats so the list can show it.
+  const recentWhatsApp = rooms.filter((r) => !r.archived && /^whatsapp/.test(r.network || '')).slice(0, 15).map((r) => r.id).join(',');
+  useEffect(() => {
+    const viewing = window.relay.local?.viewing;
+    if (!isLocal || !focused || !viewing || !recentWhatsApp) return undefined;
+    const ping = () => recentWhatsApp.split(',').forEach((id) => viewing(id, true));
+    ping();
+    const t = setInterval(ping, 60 * 1000);
+    return () => clearInterval(t);
+  }, [isLocal, focused, recentWhatsApp]);
+
   // Files dropped on a chat in the list wait here until that chat's view picks them up.
   const [droppedFiles, setDroppedFiles] = useState(null);
   const dropOnRoom = useCallback((id, files) => { setDroppedFiles({ roomId: id, files }); openRoom(id); }, [openRoom]);

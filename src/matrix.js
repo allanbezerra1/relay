@@ -175,7 +175,8 @@ export function cleanName(name = '') {
 }
 
 export function senderName(room, userId) {
-  return cleanName(room.getMember(userId)?.name || userId);
+  const m = room.getMember(userId);
+  return cleanName(m?.rawDisplayName || m?.name || userId);
 }
 
 const BOT = /^@[a-z]+bot:/;

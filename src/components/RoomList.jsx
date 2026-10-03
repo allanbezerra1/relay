@@ -4,7 +4,7 @@ import Avatar from './Avatar.jsx';
 import SyncBar from './SyncBar.jsx';
 import MiniPlayer from './MiniPlayer.jsx';
 import UpdateBanner from './UpdateBanner.jsx';
-import { roomAvatar, formatTime, memberAvatar, senderName } from '../matrix.js';
+import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
 
 const ICONS = {
@@ -24,6 +24,43 @@ const ICONS = {
 };
 const Ico = ({ d, size = 17 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"><path fill="currentColor" d={d} /></svg>;
 
+/**
+ * "typing…" / "recording audio…" per chat, for the list. Recording (WhatsApp) arrives as typing;
+ * the bridge says which typists are actually recording, asked only while someone is typing.
+ */
+function useChatActivity(client, rooms) {
+  const me = client.getUserId();
+  const typing = new Map();
+  for (const r of rooms) {
+    const who = r.room.getMembers().filter((m) => m.typing && m.userId !== me && !/bot:/.test(m.userId));
+    if (who.length) typing.set(r.id, { who, group: r.group, wa: /^whatsapp/.test(r.network || '') });
+  }
+  const key = [...typing.keys()].join(',');
+  const [recording, setRecording] = useState({}); // roomId -> [userId]
+  useEffect(() => {
+    const ask = window.relay?.local?.recording;
+    const ids = key ? key.split(',').filter((id) => typing.get(id)?.wa) : [];
+    if (!ask || !ids.length) { setRecording({}); return undefined; }
+    let alive = true;
+    const poll = () => Promise.all(ids.map((id) => ask(id).then((u) => [id, u || []])))
+      .then((pairs) => alive && setRecording(Object.fromEntries(pairs)));
+    poll();
+    const t = setInterval(poll, 1500);
+    return () => { alive = false; clearInterval(t); };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const out = new Map();
+  for (const [id, { who, group }] of typing) {
+    const rec = who.filter((m) => (recording[id] || []).includes(m.userId));
+    const first = (m) => cleanName(m.rawDisplayName || m.name || '').split(' ')[0];
+    const list = rec.length ? rec : who;
+    const verb = rec.length ? 'recording audio…' : 'typing…';
+    const text = !group ? verb : list.length === 1 ? `${first(list[0])} is ${verb}` : `${list.length} people are ${verb}`;
+    out.set(id, { text, recording: rec.length > 0 });
+  }
+  return out;
+}
+
 export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
@@ -35,6 +72,7 @@ export default function RoomList({
   const pinned = showTiles ? rooms.filter((r) => r.pinned) : [];
   const listRooms = showTiles ? rooms.filter((r) => !r.pinned) : rooms;
   const [menu, setMenu] = useState(null);
+  const activity = useChatActivity(client, rooms);
   // Drop files on a chat in the list to open it with them ready to send.
   const [dropId, setDropId] = useState(null);
   const dropProps = (r) => onDropFiles ? {
@@ -237,12 +275,19 @@ export default function RoomList({
                   <span className="room-time">{r.ts ? formatTime(r.ts) : ''}</span>
                 </div>
                 <div className="room-bottom">
+                  {activity.has(r.id) ? (
+                    <span className={`room-preview room-activity ${activity.get(r.id).recording ? 'rec' : ''}`}>
+                      {activity.get(r.id).recording && <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2Z" /></svg>}
+                      {activity.get(r.id).text}
+                    </span>
+                  ) : (
                   <span className="room-preview">
                     {showPreviews && r.group && r.last && r.last.getSender() !== client.getUserId() && (
                       <span className="pv-avatar"><Avatar src={memberAvatar(client, r.room, r.last.getSender(), 32)} name={senderName(r.room, r.last.getSender())} id={r.last.getSender()} size={15} /></span>
                     )}
                     {r.invite ? 'Invitation to chat' : showPreviews ? r.preview || '\u00a0' : '\u00a0'}
                   </span>
+                  )}
                   {r.unread > 0 ? (
                     <span className={`count ${r.highlight ? 'hl' : r.muted ? 'muted' : ''}`}>{r.unread > 99 ? '99+' : r.unread}</span>
                   ) : r.markedUnread ? <span className="count dot" /> : null}

@@ -45,7 +45,7 @@ function MediaTile({ client, room, item, onOpenImage }) {
   const sender = item.ev.getSender();
   const src = thumb.url || full.url;
   return (
-    <button className="media-tile" onClick={() => full.url && onOpenImage({ src: full.url, name: content.filename || content.body })}>
+    <button className="media-tile" onClick={() => full.url && onOpenImage({ src: full.url, name: content.filename || content.body, eventId: item.ev.getId() })}>
       {src ? <img src={src} alt="" draggable={false} /> : <span className="media-loading" />}
       {item.kind === 'video' && <span className="tile-play">▶</span>}
       <span className="tile-avatar"><Avatar src={memberAvatar(client, room, sender, 48)} name={senderName(room, sender)} id={sender} size={22} /></span>

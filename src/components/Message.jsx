@@ -97,6 +97,30 @@ function Meta({ time, mine, receipt: receiptInfo, edited, overlay, starred }) {
   );
 }
 
+/** Who read your message, with when. */
+function SeenList({ readers, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const close = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
+    const esc = (e) => e.key === 'Escape' && onClose();
+    setTimeout(() => window.addEventListener('mousedown', close), 0);
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', esc); };
+  }, [onClose]);
+  return (
+    <div className="seen-list" ref={ref}>
+      <div className="seen-title">{readers.length ? `Seen by ${readers.length}` : 'Nobody has seen it yet'}</div>
+      {readers.map((r) => (
+        <div key={r.userId} className="seen-row">
+          <Avatar src={r.avatar} name={r.name} id={r.userId} size={28} />
+          <span className="seen-name">{r.name}</span>
+          <span className="seen-when">{r.when}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Caption({ content }) {
   // Bridges put the caption in `body` and the file name in `filename`.
   const caption = content.filename && content.body && content.body !== content.filename ? content.body : null;
@@ -242,7 +266,7 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
   if (ev.getType() === EventType.Sticker) return <ImageBody client={client} content={content} onOpen={onOpenImage} sticker />;
 
   switch (content.msgtype) {
-    case MsgType.Image: return <ImageBody client={client} content={content} onOpen={onOpenImage} meta={meta} />;
+    case MsgType.Image: return <ImageBody client={client} content={content} onOpen={(x) => onOpenImage({ ...x, eventId: ev.getId() })} meta={meta} />;
     case MsgType.Video: return <VideoBody client={client} content={content} meta={meta} />;
     case MsgType.Audio: return <VoicePlayer client={client} content={content} id={ev.getId()} mine={mine} trailing={meta}
       who={{ name: senderName(room, ev.getSender()), avatar: memberAvatar(client, room, ev.getSender(), 64) }} />;
@@ -330,8 +354,9 @@ function Message({
   client, room, ev, mine, continued, showSender, avatar, sender, receipt, starred,
   onReact, onReply, onEdit, onDelete, onRetry, onOpenImage, onStar,
   selecting, selected, onToggleSelect, onSelectStart, onForward,
-  replies, onOpenThread, className = '', onOpenDirect, statusLine, onToast,
+  replies, onOpenThread, className = '', onOpenDirect, statusLine, onToast, seenBy,
 }) {
+  const [seenOpen, setSeenOpen] = useState(null); // readers list being shown
   const [picker, setPicker] = useState(false);
   const bubbleRef = useRef(null);
 
@@ -420,6 +445,7 @@ function Message({
       link && { label: 'Open link in browser', icon: <span>↗</span>, run: () => window.open(link, '_blank') },
       isImage && { label: 'Open image', icon: <span>🖼</span>, run: () => mediaEl()?.click() },
       isImage && { label: 'Copy image', icon: <Svg d={I.copy} size={15} />, run: () => { const u = mediaUrl(); if (u) copyImage(u).then(() => onToast?.('Image copied'), (err) => onToast?.(`Couldn’t copy: ${err.message}`)); } },
+      seenBy && { label: 'Seen by…', icon: <Svg d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" size={15} />, run: () => setSeenOpen(seenBy()) },
       stickerItem(),
       (isMedia || isAudio || content.msgtype === MsgType.File) && { label: 'Save…', icon: <Svg d={I.download} size={15} />, run: saveMedia },
       !ev.status && onStar && { label: starred ? 'Unstar' : 'Star', icon: <Svg d={starred ? I.star : I.starOutline} size={15} />, run: () => onStar(ev) },
@@ -513,7 +539,17 @@ function Message({
         )}
 
         {menuEl}
-        {statusLine && !failed && <div className="msg-status seen">{statusLine}</div>}
+        {statusLine?.short && !failed && (
+          statusLine.readers?.length ? (
+            <button className="msg-status seen seen-by" onClick={() => setSeenOpen(seenOpen ? null : statusLine.readers)}>
+              <span className="seen-faces">
+                {statusLine.readers.slice(0, 4).map((r) => <Avatar key={r.userId} src={r.avatar} name={r.name} id={r.userId} size={16} />)}
+              </span>
+              {statusLine.short}
+            </button>
+          ) : <div className="msg-status seen">{statusLine.short}</div>
+        )}
+        {seenOpen && <SeenList readers={seenOpen} onClose={() => setSeenOpen(null)} />}
         {failed && (
           <div className="msg-status failed">
             Not sent · <button onClick={() => onRetry(ev)}>Retry</button> · <button onClick={() => onDelete(ev)}>Delete</button>
