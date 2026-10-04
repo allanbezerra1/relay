@@ -395,8 +395,13 @@ ipcMain.handle('media:toOgg', async (_e, bytes) => {
   const ff = (args) => new Promise((resolve, reject) =>
     execFile(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', '-i', input, ...args, output], (err) => (err ? reject(err) : resolve())));
   try {
-    try { await ff(['-vn', '-c:a', 'copy', '-f', 'ogg']); }
-    catch { await ff(['-vn', '-c:a', 'libopus', '-b:a', '48k', '-f', 'ogg']); }
+    // Re-encode instead of just re-wrapping Chromium's Opus: the copied stream starts at a negative
+    // timestamp with pre-skip 0, which WhatsApp on iPhone refuses ("This audio is no longer
+    // available", no transcription). A real libopus encode gives a standard Ogg Opus voice note.
+    try {
+      await ff(['-vn', '-map_metadata', '-1', '-ac', '1', '-ar', '48000', '-c:a', 'libopus', '-b:a', '32k', '-vbr', 'on',
+        '-application', 'voip', '-frame_duration', '20', '-avoid_negative_ts', 'make_zero', '-f', 'ogg']);
+    } catch { await ff(['-vn', '-c:a', 'copy', '-avoid_negative_ts', 'make_zero', '-f', 'ogg']); }
     return fs.readFileSync(output);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
