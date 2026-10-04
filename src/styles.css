@@ -1711,3 +1711,36 @@ body { background: var(--panel); }
 .fmt-code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.92em; padding: 1px 5px; border-radius: 6px; background: color-mix(in srgb, var(--text) 10%, transparent); }
 .fmt-block { display: block; white-space: pre-wrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.9em; padding: 8px 10px; margin: 4px 0; border-radius: 10px; background: color-mix(in srgb, var(--text) 9%, transparent); }
 .msg.mine .fmt-code, .msg.mine .fmt-block { background: rgba(255, 255, 255, 0.16); }
+/* ---------- Files (Message.jsx → FileBody): colored document icon per type ---------- */
+.bubble .file {
+  display: flex; align-items: center; gap: 12px; width: 340px; max-width: 100%; min-width: 0; margin: 2px 0 4px; padding: 10px 10px 10px 12px;
+  border-radius: 14px; text-decoration: none !important; color: inherit !important;
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--file) 20%, transparent), transparent 70%), color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--file) 28%, transparent);
+  transition: background 0.18s, border-color 0.18s, transform 0.2s cubic-bezier(.2, 1.3, .4, 1);
+}
+.bubble .file:hover { border-color: color-mix(in srgb, var(--file) 55%, transparent); transform: translateY(-1px); }
+.bubble .file-icon {
+  position: relative; width: 40px; height: 48px; padding: 0; flex-shrink: 0; display: block; background: none !important; clip-path: none;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--file) 45%, transparent));
+}
+.bubble .file-icon svg { display: block; }
+.bubble .file-icon > span {
+  position: absolute; left: 0; right: 0; bottom: 7px; text-align: center; color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; line-height: 1;
+}
+.bubble .file-icon > span.long { font-size: 8.5px; letter-spacing: 0.01em; }
+.bubble .file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bubble .file-name { display: flex; min-width: 0; max-width: none; font-size: 14px; font-weight: 650; line-height: 1.25; }
+.bubble .file-base { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.bubble .file-ext { flex-shrink: 0; opacity: 0.7; font-weight: 500; }
+.bubble .file-size { font-size: 12px; color: var(--text-2); }
+.bubble .file-dl {
+  width: 36px; height: 36px; margin-left: 4px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--file) 80%, #fff), var(--file));
+  box-shadow: 0 6px 14px -6px var(--file); transition: transform 0.15s cubic-bezier(.2, 1.4, .4, 1);
+}
+.bubble .file:hover .file-dl { transform: translateY(1px) scale(1.06); }
+.msg.mine .bubble .file { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.22); }
+.msg.mine .bubble .file-size { color: rgba(255, 255, 255, 0.78); }
+

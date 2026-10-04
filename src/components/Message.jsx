@@ -261,17 +261,45 @@ function VideoBody({ client, content, meta }) {
   );
 }
 
+// File types: a friendly name and a color for the document icon.
+const FILE_KINDS = [
+  [/^pdf$/, 'PDF document', '#ef4444'],
+  [/^(xlsx?|xlsm|csv|ods|numbers)$/, 'Spreadsheet', '#16a34a'],
+  [/^(docx?|odt|rtf|pages)$/, 'Document', '#2563eb'],
+  [/^(pptx?|odp|key)$/, 'Presentation', '#ea580c'],
+  [/^(zip|rar|7z|tar|gz|tgz|bz2|xz)$/, 'Archive', '#d97706'],
+  [/^(mp3|m4a|ogg|opus|wav|flac|aac)$/, 'Audio', '#9333ea'],
+  [/^(mp4|mov|mkv|avi|webm|3gp)$/, 'Video', '#7c3aed'],
+  [/^(jpe?g|png|gif|webp|heic|svg|bmp|tiff?)$/, 'Image', '#0891b2'],
+  [/^(txt|md|log)$/, 'Text', '#64748b'],
+  [/^(json|js|ts|jsx|tsx|py|html|css|xml|sql|sh|yml|yaml|go|rs|java|c|cpp)$/, 'Code', '#475569'],
+  [/^(apk|exe|dmg|deb|appimage|msi|pkg)$/, 'Installer', '#334155'],
+  [/^(ics)$/, 'Calendar invite', '#2563eb'],
+  [/^(vcf)$/, 'Contact', '#0d9488'],
+];
+const fileKind = (ext) => { const k = FILE_KINDS.find(([re]) => re.test(ext)); return k ? { label: k[1], color: k[2] } : { label: 'File', color: '#64748b' }; };
+
 function FileBody({ client, content }) {
   const { url } = useMedia(client, content);
   const name = content.filename || content.body || 'File';
-  const ext = (name.split('.').pop() || '').slice(0, 4).toUpperCase();
+  const dot = name.lastIndexOf('.');
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const kind = fileKind(ext);
+  const tag = ext && ext.length <= 4 ? ext.toUpperCase() : ext ? ext.slice(0, 3).toUpperCase() : '•••';
   return (
     <>
-      <a className="file" href={url || undefined} download={name} target="_blank" rel="noreferrer">
-        <span className="file-icon"><span>{ext && ext !== name.toUpperCase() ? ext : 'FILE'}</span></span>
+      <a className="file" href={url || undefined} download={name} target="_blank" rel="noreferrer" style={{ '--file': kind.color }} title={`Download ${name}`}>
+        <span className="file-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 48" width="40" height="48">
+            <path d="M5 0h21l14 14v29a5 5 0 0 1-5 5H5a5 5 0 0 1-5-5V5a5 5 0 0 1 5-5Z" fill="var(--file)" />
+            <path d="M26 0v9a5 5 0 0 0 5 5h9Z" fill="#fff" fillOpacity="0.38" />
+          </svg>
+          <span className={tag.length > 3 ? 'long' : ''}>{tag}</span>
+        </span>
         <span className="file-meta">
-          <span className="file-name">{name}</span>
-          <span className="file-size">{[formatBytes(content.info?.size), content.info?.mimetype?.split('/')[1]?.toUpperCase()].filter(Boolean).join(' · ')}</span>
+          <span className="file-name"><span className="file-base">{base}</span>{dot > 0 && <span className="file-ext">.{ext}</span>}</span>
+          <span className="file-size">{[kind.label, formatBytes(content.info?.size)].filter(Boolean).join(' · ')}</span>
         </span>
         <span className="file-dl"><Svg d={I.download} size={18} /></span>
       </a>
