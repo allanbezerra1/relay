@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
+const calls = require('./calls.cjs'); // WhatsApp voice & video calls through WhatsApp Web
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -148,7 +149,11 @@ function createWindow() {
       else app.hide();
     }
   });
-  win.on('closed', () => (win = null));
+  win.on('closed', () => {
+    win = null;
+    // Elsewhere closing the window quits; the hidden WhatsApp Web window (calls) mustn't keep Relay alive.
+    if (process.platform !== 'darwin') app.quit();
+  });
 }
 
 // ---------- IPC ----------
@@ -527,6 +532,11 @@ app.whenReady().then(() => {
     ]));
   }
   createWindow();
+  calls.init({
+    mainWindow: () => win,
+    resolveTarget: async (roomId) => local.whatsappChatTarget(roomId),
+    onState: (st) => send('calls:state', st),
+  });
   updater.init((s) => send('update:state', s));
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

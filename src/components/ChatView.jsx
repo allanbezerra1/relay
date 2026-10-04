@@ -12,6 +12,8 @@ import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
 import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
+import { CallButtons } from './CallUI.jsx';
+import { callsAvailable } from '../calls.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -373,7 +375,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     return (
       <section className="chat">
         <div className="chat-main">
-        <ChatHeader client={client} info={info} onToggleInfo={() => {}} />
+        <ChatHeader client={client} info={info} onToggleInfo={() => {}} onToast={showToast} />
         <div className="invite">
           <Avatar src={roomAvatar(client, room, 160)} name={info.name} id={room.roomId} size={88} network={info.network} />
           <h2>{info.name}</h2>
@@ -396,7 +398,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
       onDrop={(e) => { e.preventDefault(); setDragging(false); stageFiles([...e.dataTransfer.files]); }}
     >
       <div className="chat-main">
-      <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo} />
+      <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo} onToast={showToast} />
 
       <div className={`timeline ${threadRoot ? 'behind-thread' : ''}`} ref={scrollRef} onScroll={onScroll}>
         <div className="timeline-inner">
@@ -512,9 +514,11 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   );
 }
 
-function ChatHeader({ client, info, infoOpen, onToggleInfo }) {
+function ChatHeader({ client, info, infoOpen, onToggleInfo, onToast }) {
   const { room } = info;
   const muted = isMuted(client, room.roomId);
+  const canCall = callsAvailable() && /^whatsapp/.test(info.network || '')
+    && !room.currentState.getStateEvents('m.bridge').some((e) => e.getContent()?.channel?.id === 'status@broadcast');
   return (
     <header className="chat-float">
       <div className="drag-region" />
@@ -526,6 +530,7 @@ function ChatHeader({ client, info, infoOpen, onToggleInfo }) {
           <svg viewBox="0 0 24 24" width="16" height="16" className={`chev ${infoOpen ? 'open' : ''}`}><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6 1.4-1.4Z" /></svg>
         </span>
       </button>
+      {canCall && <CallButtons roomId={room.roomId} name={info.name} onError={onToast} />}
       <button className={`float-panel-btn ${infoOpen ? 'on' : ''}`} onClick={onToggleInfo} title={infoOpen ? 'Hide details' : 'Show details'}>
         <svg viewBox="0 0 24 24" width="19" height="19"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-4 16H5V5h10v14Zm4 0h-2V5h2v14Z" /></svg>
       </button>

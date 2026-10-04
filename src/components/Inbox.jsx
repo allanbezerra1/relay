@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { RoomEvent, KnownMembership, ReceiptType } from 'matrix-js-sdk';
 import { useClientTick, useWindowFocus } from '../hooks.js';
 import { detectNetwork, networkInfo, NETWORKS } from '../networks.js';
-import { lastMessage, previewText, isDisplayable, senderName, mediaUrl, cleanName, peopleCount } from '../matrix.js';
+import { lastMessage, previewText, isDisplayable, senderName, mediaUrl, cleanName, peopleCount, roomAvatar, memberAvatar, callAction } from '../matrix.js';
 import { local, BRIDGE_BOT, BRIDGE_PUPPET } from '../local.js';
 import { usePrefs, getPrefs } from '../prefs.js';
 import { uiSound, notificationSound } from '../sounds.js';
@@ -19,6 +19,9 @@ import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
+import { CallPill } from './CallUI.jsx';
+import CallHistory, { CallsRailButton } from './CallHistory.jsx';
+import { setCallsLocalMode, avatarDataUrl } from '../calls.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -126,11 +129,12 @@ function useProfiles(client, isLocal, tick) {
 
 export default function Inbox({ client, isLocal, onSignOut }) {
   const tick = useClientTick(client);
+  setCallsLocalMode(isLocal); // WhatsApp calls need the local bridge
   const focused = useWindowFocus();
   const prefs = usePrefs();
   const [activeId, setActiveId] = useState(() => localStorage.getItem('relay.activeRoom'));
   const [filter, setFilter] = useState('all'); // 'all' | 'net:<id>' | 'acct:<net>:<id>'
-  const [view, setView] = useState('inbox'); // 'inbox' | 'archive'
+  const [view, setView] = useState('inbox'); // 'inbox' | 'archive' | 'status' | 'communities' | 'calls'
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [labelFilter, setLabelFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null); // null | 'dm' | 'group'
@@ -301,6 +305,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   // ----- Native notifications -----
   const stateRef = useRef({});
   stateRef.current = { focused, activeId };
+  const isLocalRef = useRef(isLocal);
+  isLocalRef.current = isLocal;
   useEffect(() => {
     const onTimeline = async (ev, room, toStart, removed, data) => {
       if (toStart || removed || !data?.liveEvent || !room) return;
@@ -308,6 +314,21 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       if (ev.getSender() === client.getUserId()) return;
       await client.decryptEventIfNeeded(ev);
       if (!isDisplayable(ev)) return;
+
+      // Incoming WhatsApp call: Relay's ringing window instead of a message notification.
+      const call = callAction(ev);
+      if (call) {
+        if (window.relay.calls && isLocalRef.current && Date.now() - ev.getTs() < 60 * 1000) {
+          const caller = cleanName(senderName(room, ev.getSender()));
+          const group = peopleCount(room) > 2;
+          const avatar = await avatarDataUrl(roomAvatar(client, room, 128) || memberAvatar(client, room, ev.getSender(), 128));
+          window.relay.calls.incoming({
+            roomId: room.roomId, video: call.video, ts: ev.getTs(), avatar,
+            name: group ? `${caller} · ${cleanName(room.name)}` : cleanName(room.name) || caller,
+          });
+        }
+        return;
+      }
 
       // Muted chats (e.g. WhatsApp status) stay quiet and stay archived.
       const actions = client.getPushActionsForEvent(ev);
@@ -428,6 +449,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
 
   return (
     <div className="app">
+      {isLocal && <CallPill />}
       <nav className="rail">
         <div className="drag-region rail-drag" />
         <button className={`rail-btn ${filter === 'all' && view === 'inbox' ? 'on' : ''}`} onClick={() => { setFilter('all'); setView('inbox'); }} title="Inbox (⌘1)">
@@ -447,6 +469,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             </button>
           </>
         )}
+        {isLocal && <CallsRailButton active={view === 'calls'} onOpen={() => setView('calls')} onClose={() => setView('inbox')} />}
         <div className="rail-sep" />
         {railItems.map((item, i) => {
           const net = networkInfo(item.badgeNet || item.net);
@@ -455,7 +478,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             <button
               key={item.key}
               className={`rail-btn app-tile ${filter === item.filter ? 'on' : ''} ${['BAD_CREDENTIALS', 'UNKNOWN_ERROR', 'LOGGED_OUT'].includes(item.state) ? 'degraded' : ''}`}
-              onClick={() => { if (view === 'status' || view === 'communities') setView('inbox'); setFilter(filter === item.filter ? 'all' : item.filter); }}
+              onClick={() => { if (view === 'status' || view === 'communities' || view === 'calls') setView('inbox'); setFilter(filter === item.filter ? 'all' : item.filter); }}
               onContextMenu={(e) => openRailMenu(e, [
                 { label: filter === item.filter ? 'Show all chats' : 'Show only this account', run: () => setFilter(filter === item.filter ? 'all' : item.filter) },
                 { label: 'Mark all as read', run: () => rooms.filter((r) => matchesFilter(r, item.filter) && (r.unread || r.markedUnread)).forEach((r) => actions.markRead(r)) },
@@ -487,6 +510,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           onReply={(userId, room) => actions.openDirect(userId, { account: accountOf.get(room.roomId) })} />
       ) : view === 'communities' ? (
         <CommunitiesPanel client={client} rooms={rooms} tick={tick} activeId={activeId} onOpen={openRoom} />
+      ) : view === 'calls' ? (
+        <CallHistory client={client} rooms={rooms} activeId={activeId} onOpen={openRoom} onSettings={() => setSettings('calls')} />
       ) : (
         <RoomList
           client={client}

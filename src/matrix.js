@@ -199,6 +199,12 @@ export function isState(ev) {
   return ev.isState() && [EventType.RoomMember, EventType.RoomName, EventType.RoomTopic, EventType.RoomAvatar].includes(ev.getType());
 }
 
+/** A bridge's call notice ("Incoming call", com.beeper.action_message), or null. */
+export function callAction(ev) {
+  const a = ev?.getContent?.()?.['com.beeper.action_message'];
+  return a?.type === 'call' ? { video: a.call_type === 'video' } : null;
+}
+
 export function previewText(room, ev, myUserId) {
   if (!ev) return '';
   if (ev.isRedacted()) return 'Message deleted';
@@ -208,6 +214,7 @@ export function previewText(room, ev, myUserId) {
   const who = ev.getSender() === myUserId ? 'You' : null;
   let text;
   if (ev.getType() === EventType.Sticker) text = 'Sticker';
+  else if (callAction(ev)) text = callAction(ev).video ? '🎥 Video call' : '📞 Voice call';
   else if (c['dev.relay.view_once'] || (c.msgtype === MsgType.Notice && /view once message/i.test(c.body || ''))) text = '① View once message';
   else switch (c.msgtype) {
     case MsgType.Image: text = '📷 Photo'; break;

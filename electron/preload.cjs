@@ -65,6 +65,39 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener(`local:${channel}`, fn);
     },
   },
+  // WhatsApp voice & video calls (electron/calls.cjs).
+  calls: {
+    state: () => ipcRenderer.invoke('calls:state'),
+    connect: () => ipcRenderer.invoke('calls:connect'),
+    open: () => ipcRenderer.invoke('calls:open'),
+    setEnabled: (on) => ipcRenderer.invoke('calls:setEnabled', on),
+    disconnect: () => ipcRenderer.invoke('calls:disconnect'),
+    start: (roomId, video, name) => ipcRenderer.invoke('calls:start', roomId, video, name),
+    incoming: (info) => ipcRenderer.send('calls:incoming', info),
+    answer: () => ipcRenderer.send('calls:answer'),
+    decline: () => ipcRenderer.send('calls:decline'),
+    hangup: () => ipcRenderer.invoke('calls:hangup'),
+    history: () => ipcRenderer.invoke('calls:history'),
+    seen: () => ipcRenderer.invoke('calls:seen'),
+    diagnose: () => ipcRenderer.invoke('calls:diagnose'),
+    simulate: (video) => ipcRenderer.invoke('calls:simulate', video),
+    askMedia: (video) => ipcRenderer.invoke('calls:askMedia', video),
+    onState: (cb) => {
+      const fn = (_e, s) => cb(s);
+      ipcRenderer.on('calls:state', fn);
+      return () => ipcRenderer.removeListener('calls:state', fn);
+    },
+    onHistory: (cb) => {
+      const fn = (_e, h) => cb(h);
+      ipcRenderer.on('calls:history', fn);
+      return () => ipcRenderer.removeListener('calls:history', fn);
+    },
+    onShowHistory: (cb) => {
+      const fn = () => cb();
+      ipcRenderer.on('calls:showHistory', fn);
+      return () => ipcRenderer.removeListener('calls:showHistory', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);

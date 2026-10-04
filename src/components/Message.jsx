@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useContextMenu } from './ContextMenu.jsx';
 import { EventStatus, EventType, MsgType } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
+import { CallNotice } from './CallUI.jsx';
+import { callsAvailable } from '../calls.js';
 import VoicePlayer, { fmt } from './VoicePlayer.jsx';
 import { player } from '../player.js';
 import EmojiPicker from './EmojiPicker.jsx';
@@ -9,7 +11,7 @@ import { useMedia, copyImage } from '../media.js';
 import { saveSticker, removeSticker, findSaved } from '../stickers.js';
 import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
-  senderName, previewText, formatBytes, memberAvatar, cleanName,
+  senderName, previewText, formatBytes, memberAvatar, cleanName, callAction,
 } from '../matrix.js';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -259,7 +261,7 @@ function FileBody({ client, content }) {
   );
 }
 
-function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
+function Body({ client, room, ev, content, mine, onOpenImage, meta, onToast }) {
   if (ev.isRedacted()) return <span className="meta-text">🚫 Message deleted</span>;
   // WhatsApp never sends view-once media to linked devices; the bridge leaves a notice instead.
   if (content.msgtype === MsgType.Notice && /view once message/i.test(content.body || '')) {
@@ -274,6 +276,9 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
   if (ev.isDecryptionFailure()) return <span className="meta-text">🔒 Unable to decrypt this message.</span>;
   if (ev.getType() === EventType.RoomMessageEncrypted) return <span className="meta-text">🔒 Decrypting…</span>;
   if (ev.getType() === EventType.Sticker) return <ImageBody client={client} content={content} onOpen={onOpenImage} sticker />;
+  // WhatsApp calls: the bridge's "Incoming call" notice becomes a call card with "Call back".
+  const call = callAction(ev);
+  if (call) return <CallNotice video={call.video} mine={mine} roomId={callsAvailable() ? room.roomId : null} name={room.name} onError={onToast} />;
 
   switch (content.msgtype) {
     case MsgType.Image: return <ImageBody client={client} content={content} onOpen={(x) => onOpenImage({ ...x, eventId: ev.getId() })} meta={meta} />;
@@ -499,7 +504,7 @@ function Message({
             ev.isRedacted() && 'redacted',
           ].filter(Boolean).join(' ')}>
             {replyId && <ReplyQuote room={room} id={replyId} onOpen={onOpenThread && !selecting ? () => onOpenThread(ev) : null} />}
-            <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} />
+            <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} onToast={onToast} />
             {content['dev.relay.view_once'] && <span className="vo-tag"><span className="vo-circle small">1</span>View once</span>}
             {!imageOverlay && !isAudio && meta}
           </div>
