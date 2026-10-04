@@ -99,10 +99,10 @@ index 5381311..2160905 100644
  		EventMeta: simplevent.EventMeta{
 diff --git a/pkg/connector/relay_power.go b/pkg/connector/relay_power.go
 new file mode 100644
-index 0000000..a5a65e1
+index 0000000..555e6f7
 --- /dev/null
 +++ b/pkg/connector/relay_power.go
-@@ -0,0 +1,348 @@
+@@ -0,0 +1,364 @@
 +// Relay patch: WhatsApp "power features" Relay can't reach through plain Matrix events.
 +//
 +// `!wa sync relay <nonce> <op> [args…]` runs one operation and answers in the command room with
@@ -110,6 +110,7 @@ index 0000000..a5a65e1
 +// for. The JSON is {"ok":true,…} or {"ok":false,"error":"…"}. Operations:
 +//
 +//	group-info   <!room>                                 participants (with admin flags) and settings
++//	leave        <!room>                                 leave the WhatsApp group
 +//	invite-link  <!room> [reset]                         get (or revoke and regenerate) the invite link
 +//	participants <!room> <add|remove|promote|demote> <@ghost…>
 +//	setting      <!room> <announce|locked> <on|off>      "only admins can send" / "only admins edit info"
@@ -291,6 +292,21 @@ index 0000000..a5a65e1
 +			"community":        info.IsParent || info.IsDefaultSubGroup,
 +			"member_add_admin": info.MemberAddMode == types.GroupMemberAddModeAdmin,
 +		})
++	case "leave":
++		// Leave the WhatsApp group for real (a Matrix leave of yourself isn't reliable for that).
++		if !need(1) {
++			return
++		}
++		jid, _, err := wa.relayGroupJID(ce, args[0])
++		if err != nil {
++			relayFail(ce, nonce, "%v", err)
++			return
++		}
++		if err = wa.Client.LeaveGroup(ce.Ctx, jid); err != nil {
++			relayFail(ce, nonce, "%v", err)
++			return
++		}
++		relayReply(ce, nonce, map[string]any{"ok": true})
 +	case "invite-link":
 +		if !need(1) {
 +			return

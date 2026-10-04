@@ -7,6 +7,7 @@ import UpdateBanner from './UpdateBanner.jsx';
 import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
 import { MEGAPHONE } from './Broadcast.jsx';
+import { waKind } from '../whatsapp-power.js';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -145,7 +146,7 @@ export default function RoomList({
     { label: selected.has(r.id) ? 'Deselect' : 'Select', icon: <Ico d={ICONS.select} size={15} />, run: () => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }) },
     { label: 'Copy name', icon: <Ico d={ICONS.copy} size={15} />, run: () => navigator.clipboard.writeText(r.name) },
     'separator',
-    { label: 'Leave chat', danger: true, icon: <Ico d={ICONS.leave} size={15} />, run: () => actions.leave(r) },
+    { label: /^whatsapp/.test(r.baseNetwork || r.network || '') ? (waKind(r.room, r.baseNetwork || r.network) === 'group' ? 'Exit group and delete' : 'Delete chat') : 'Leave chat', danger: true, icon: <Ico d={ICONS.leave} size={15} />, run: () => actions.leave(r) },
   ];
 
   return (
