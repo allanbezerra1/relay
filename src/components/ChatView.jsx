@@ -12,6 +12,7 @@ import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
 import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
+import { ask, notice } from '../dialogs.jsx';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -66,7 +67,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   // Scroll to a message (e.g. from Starred) and flash it.
   const jumpTo = (eventId) => {
     const el = scrollRef.current?.querySelector(`[data-event-id="${CSS.escape(eventId)}"]`);
-    if (!el) { alert('That message isn’t loaded. Scroll up to load older messages first.'); return; }
+    if (!el) { notice({ icon: 'info', title: 'Message not loaded', body: 'Scroll up to load older messages first.' }); return; }
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     el.classList.remove('flash');
     void el.offsetWidth;
@@ -156,7 +157,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const [staged, setStaged] = useState([]);
   const stageFiles = (files) => {
     const tooBig = files.filter((f) => f.size > MAX_UPLOAD);
-    if (tooBig.length) alert(`${tooBig.map((f) => f.name).join(', ')} ${tooBig.length > 1 ? 'are' : 'is'} over 2 GB, the most WhatsApp accepts.`);
+    if (tooBig.length) notice({ title: tooBig.length > 1 ? 'Files too large' : 'File too large', body: `${tooBig.length > 1 ? 'They are' : 'It is'} over 2 GB, the most WhatsApp accepts.`, list: tooBig.map((f) => f.name) });
     const ok = files.filter((f) => f.size <= MAX_UPLOAD);
     setStaged((s) => [...s, ...ok.map((file) => ({
       id: Math.random().toString(36).slice(2),
@@ -200,7 +201,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
         if (i === 0 && replyTo) content['m.relates_to'] = { 'm.in_reply_to': { event_id: replyTo.getId() } };
         await client.sendMessage(room.roomId, content);
       } catch (err) {
-        alert(`Couldn’t send ${file.name}: ${err.message}`);
+        notice({ title: 'Couldn’t send', body: `${file.name}\n${err.message}` });
       } finally {
         setUploads((u) => u.filter((x) => x.id !== id));
       }
@@ -229,9 +230,9 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     });
   };
 
-  const remove = (ev) => {
+  const remove = async (ev) => {
     if (ev.status === EventStatus.NOT_SENT) return client.cancelPendingEvent(ev);
-    if (confirm('Delete this message for everyone?')) client.redactEvent(room.roomId, ev.getId());
+    if (await ask({ title: 'Delete message?', body: 'It will be deleted for everyone in the chat.', ok: 'Delete for everyone', danger: true })) client.redactEvent(room.roomId, ev.getId());
   };
 
   const startEdit = (ev) => { setReplyTo(null); setEditing(ev); composerRef.current?.focus(); };
@@ -467,7 +468,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
               }}>Copy</button>
               <button disabled={!picked.length} onClick={() => { picked.forEach((e) => { if (!isStarred(room, e.getId())) toggleStar(client, room, e); }); setMsgSel(null); showToast('Starred'); }}>Star</button>
               <button className="danger-tool" disabled={!mineOnly} title={mineOnly ? '' : 'You can only delete your own messages'}
-                onClick={() => { if (confirm(`Delete ${picked.length} message${picked.length > 1 ? 's' : ''} for everyone?`)) { picked.forEach((e) => client.redactEvent(room.roomId, e.getId())); setMsgSel(null); } }}>Delete</button>
+                onClick={async () => { if (await ask({ title: `Delete ${picked.length} message${picked.length > 1 ? 's' : ''}?`, body: 'They will be deleted for everyone in the chat.', ok: 'Delete for everyone', danger: true })) { picked.forEach((e) => client.redactEvent(room.roomId, e.getId())); setMsgSel(null); } }}>Delete</button>
             </div>
           </div>
         );

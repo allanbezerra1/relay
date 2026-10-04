@@ -19,6 +19,7 @@ import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
+import { ask, notice } from '../dialogs.jsx';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -396,7 +397,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       const sameAccount = (id) => !fromRoom?.account || accountOf.get(id)?.key === fromRoom.account.key;
       const existing = (direct[userId] || []).find((id) => client.getRoom(id)?.getMyMembership() === 'join' && sameAccount(id));
       if (existing) { setQuery(''); setFilter('all'); setView('inbox'); openRoom(existing); return; }
-      if (!isLocal) { alert('Starting new chats is only available with chats bridged on this Mac.'); return; }
+      if (!isLocal) { notice('Starting new chats is only available with chats bridged on this Mac.'); return; }
       try {
         const loginId = fromRoom?.account?.key?.split(':').slice(1).join(':');
         const roomId = await local().openDirectChat(userId, loginId);
@@ -408,12 +409,12 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         setQuery(''); setFilter('all'); setView('inbox');
         openRoom(roomId);
       } catch (err) {
-        alert(`Couldn’t open a private chat: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`);
+        notice(`Couldn’t open a private chat: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`);
       }
     },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
     leave: async (r) => {
-      if (!confirm(`Leave “${r.name}”? This can’t be undone from Relay.`)) return;
+      if (!(await ask({ title: `Leave “${r.name}”?`, body: 'This can’t be undone from Relay.', ok: 'Leave', danger: true, icon: 'leave' }))) return;
       await client.leave(r.id);
       if (r.id === activeId) openRoom(null);
     },

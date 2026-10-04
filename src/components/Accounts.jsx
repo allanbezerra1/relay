@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { local, cleanError, CATALOG } from '../local.js';
 import NetIcon from './NetIcon.jsx';
 import { networkInfo } from '../networks.js';
+import { ask, notice as showNotice } from '../dialogs.jsx';
 
 const STATE_LABEL = {
   CONNECTED: 'Connected',
@@ -320,9 +321,9 @@ export default function Accounts({ onClose, embedded = false }) {
   }, [onClose, adding, embedded]);
 
   const remove = async (network, login) => {
-    if (!confirm(`Remove ${login.name} from Relay? Its chats will stop updating.`)) return;
+    if (!(await ask({ title: `Remove ${login.name}?`, body: 'The account leaves Relay and its chats stop updating.', ok: 'Remove', danger: true, icon: 'leave' }))) return;
     try { await local().logout(network, login.id); refresh(); }
-    catch (err) { alert(cleanError(err)); }
+    catch (err) { showNotice({ title: 'Couldn’t remove the account', body: cleanError(err) }); }
   };
 
   const finish = () => { setAdding(null); refresh(); };

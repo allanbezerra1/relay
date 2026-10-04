@@ -10,6 +10,7 @@ import {
 import {
   getLabels, roomLabels, createLabel, toggleLabel, getStarred, toggleStar, isMuted, setMuted,
 } from '../chatmeta.js';
+import { notice } from '../dialogs.jsx';
 
 const BOT = /^@[a-z]+bot:/;
 const URL_RE = /https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"]/;
@@ -154,7 +155,7 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
       if (editing === 'name' && value && value !== info.name) await client.setRoomName(room.roomId, value);
       if (editing === 'topic' && value !== topic) await client.setRoomTopic(room.roomId, value);
     } catch (err) {
-      alert(`Couldn’t save: ${err.message}`);
+      notice(`Couldn’t save: ${err.message}`);
     }
     setEditing(null);
   };
@@ -284,7 +285,7 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
               <select value={timer} onChange={(e) => {
                 const ms = Number(e.target.value);
                 client.sendStateEvent(room.roomId, 'com.beeper.disappearing_timer', ms ? { type: 'after_send', timer: ms } : {}, '')
-                  .catch((err) => alert(`Couldn’t change it: ${err.message}`));
+                  .catch((err) => notice(`Couldn’t change it: ${err.message}`));
               }}>
                 {TIMERS.map(([ms, label]) => <option key={ms} value={ms}>{label}</option>)}
                 {!TIMERS.some(([ms]) => ms === timer) && <option value={timer}>{Math.round(timer / 86400000)} days</option>}

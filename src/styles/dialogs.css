@@ -1,0 +1,74 @@
+/* ======================================================================
+   Confirm / notice dialogs (src/dialogs.jsx)
+   ====================================================================== */
+.adlg-backdrop {
+  position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 24px;
+  background: rgba(4, 5, 12, 0.55); backdrop-filter: blur(6px) saturate(120%);
+  animation: adlg-fade 0.16s ease-out both;
+}
+.adlg-backdrop.out { animation: adlg-fade 0.14s ease-in reverse both; }
+@keyframes adlg-fade { from { opacity: 0; } }
+
+.adlg {
+  --adlg-tint: var(--accent);
+  position: relative; width: 400px; max-width: 100%; padding: 26px 24px 20px; border-radius: 24px; text-align: center;
+  background:
+    radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--adlg-tint) 22%, transparent), transparent 70%),
+    color-mix(in srgb, var(--panel, #12141f) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  color: var(--text);
+  animation: adlg-pop 0.26s cubic-bezier(.2, 1.25, .35, 1) both;
+}
+.adlg.danger { --adlg-tint: #f43f5e; }
+.adlg.out { animation: adlg-pop 0.14s ease-in reverse both; }
+@keyframes adlg-pop { from { opacity: 0; transform: translateY(10px) scale(0.94); } }
+:root[data-motion="off"] .adlg, :root[data-motion="off"] .adlg-backdrop { animation: none; }
+
+.adlg-icon {
+  width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 18px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--accent-2, #7b5cff), var(--accent, #5b8cff));
+  box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.adlg.danger .adlg-icon, .adlg-icon.i-trash, .adlg-icon.i-leave {
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+  box-shadow: 0 10px 26px -8px rgba(225, 29, 72, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.adlg-icon.i-warn { background: linear-gradient(135deg, #fbbf24, #f97316); box-shadow: 0 10px 26px -8px rgba(249, 115, 22, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.adlg-icon.i-check { background: linear-gradient(135deg, #34d399, #14b8a6); box-shadow: 0 10px 26px -8px rgba(20, 184, 166, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+
+.adlg-title { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.adlg-body { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text-2); white-space: pre-line; overflow-wrap: anywhere; }
+.adlg-title + .adlg-body { margin-top: 2px; }
+
+.adlg-list {
+  list-style: none; margin: 14px 0 0; padding: 6px; max-height: 180px; overflow-y: auto; text-align: left;
+  border-radius: 14px; background: color-mix(in srgb, var(--text) 5%, transparent); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+}
+.adlg-list li { padding: 6px 10px; font-size: 13px; border-radius: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adlg-list li + li { border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent); }
+.adlg-list li.more { color: var(--text-2); font-style: italic; }
+
+.adlg-actions { display: flex; gap: 10px; margin-top: 22px; }
+.adlg-btn {
+  padding: 0 14px; border: 0 !important;
+  flex: 1; height: 42px; border-radius: 13px; border: 0; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;
+  transition: transform 0.15s cubic-bezier(.2, 1.4, .4, 1), filter 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.adlg-btn:active { transform: scale(0.97); }
+.adlg-btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--adlg-tint) 70%, #fff); outline-offset: 2px; }
+.adlg-btn.ghost { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.adlg-btn.ghost:hover { background: color-mix(in srgb, var(--text) 13%, transparent); }
+.adlg-btn.adlg-ok {
+  color: #fff; background: linear-gradient(135deg, var(--accent-2, #7b5cff), var(--accent, #5b8cff));
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.adlg-btn.adlg-danger { color: #fff; background: linear-gradient(135deg, #fb7185, #e11d48); box-shadow: 0 8px 22px -10px rgba(225, 29, 72, 0.8); }
+.adlg-btn.adlg-ok:hover, .adlg-btn.adlg-danger:hover { filter: brightness(1.08); }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .adlg { box-shadow: 0 30px 70px -24px rgba(20, 24, 60, 0.35), inset 0 1px 0 #fff; }
+  :root:not([data-theme="dark"]) .adlg-backdrop { background: rgba(30, 34, 60, 0.28); }
+}
+:root[data-theme="light"] .adlg { box-shadow: 0 30px 70px -24px rgba(20, 24, 60, 0.35), inset 0 1px 0 #fff; }
+:root[data-theme="light"] .adlg-backdrop { background: rgba(30, 34, 60, 0.28); }
