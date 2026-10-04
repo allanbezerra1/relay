@@ -21,6 +21,7 @@ import { useContextMenu } from './ContextMenu.jsx';
 import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
 import BroadcastDialog from './Broadcast.jsx';
+import { waPower, waKind } from '../whatsapp-power.js';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
 import { ask, notice } from '../dialogs.jsx';
@@ -552,10 +553,28 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     openRoom: (id) => { setQuery(''); setFilter('all'); setView('inbox'); openRoom(id); },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
     toggleImportant: (r) => (r.importantGroup ? client.deleteRoomTag(r.id, TAG_IMPORTANT) : client.setRoomTag(r.id, TAG_IMPORTANT, { order: 0.5 })),
-    // `ask: false` for bulk actions (one confirmation for all).
+    // On WhatsApp this is the phone's "Delete chat" / "Exit group and delete": the bridge's
+    // delete-chat event leaves the group (if it is one) and deletes the chat on WhatsApp too, so it
+    // must go out while we're still in the room. `ask: false` for bulk actions (one confirmation for all).
     leave: async (r, { ask: confirmFirst = true } = {}) => {
-      if (confirmFirst && !(await ask({ title: `Leave “${r.name}”?`, body: 'This can’t be undone from Relay.', ok: 'Leave', danger: true, icon: 'leave' }))) return;
-      await client.leave(r.id);
+      const wa = /^whatsapp/.test(r.baseNetwork || r.network || '');
+      const group = wa && r.room ? waKind(r.room, r.baseNetwork || r.network) === 'group' : r.group;
+      const question = !wa ? { title: `Leave “${r.name}”?`, body: 'This can’t be undone from Relay.', ok: 'Leave' }
+        : group ? { title: `Exit “${r.name}” and delete the chat?`, body: 'You leave the group on WhatsApp and the chat is deleted from your phone too.', ok: 'Exit and delete' }
+          : { title: `Delete the chat with “${r.name}”?`, body: 'It’s deleted from WhatsApp on your phone too.', ok: 'Delete chat' };
+      if (confirmFirst && !(await ask({ ...question, danger: true, icon: 'leave' }))) return;
+      if (wa) {
+        try {
+          await client.sendEvent(r.id, 'com.beeper.delete_chat', {});
+          await new Promise((res) => setTimeout(res, 2500)); // let the bridge act before we leave
+        } catch (err) {
+          // Groups can still be left through the patched bridge (r11).
+          const res = group ? await waPower('leave', r.id) : { ok: false, error: String(err?.message || err) };
+          if (!res.ok && !res.unsupported) { alert(`Couldn’t delete “${r.name}” on WhatsApp: ${res.error || 'unknown error'}`); return; }
+        }
+      }
+      await client.leave(r.id).catch(() => {});
+      client.forget?.(r.id)?.catch?.(() => {});
       if (r.id === activeId) openRoom(null);
     },
   }), [client, activeId, visible, openRoom, accountOf, isLocal]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -863,7 +863,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 10; // r10: `sync relay` (group admin, invite links, contact about, blocking), see relay_power.go
+const PATCH_REV = 11; // r10: `sync relay` (group admin, invite links, contact about, blocking), see relay_power.go; r11: `sync relay … leave` (leave a group)
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
@@ -1149,7 +1149,7 @@ async function bridgeCommand(name, command) {
 
 // ---------- WhatsApp power features (patched bridge r10+, see relay_power.go) ----------
 
-const POWER_OPS = ['group-info', 'invite-link', 'participants', 'setting', 'user-info', 'block'];
+const POWER_OPS = ['group-info', 'leave', 'invite-link', 'participants', 'setting', 'user-info', 'block'];
 
 /**
  * Run `!wa sync relay <nonce> <op> …` and wait for the bot's "relay:<nonce> {json}" answer.

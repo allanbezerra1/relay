@@ -296,7 +296,9 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
       <div className="ip-bottom">
         <button title={info.archived ? 'Move to inbox' : 'Archive'} onClick={() => actions.toggleArchive(info)}><Svg d={ICON.archive} /><span>{info.archived ? 'Unarchive' : 'Archive'}</span></button>
         <button title="Mark as unread" onClick={() => actions.markUnread(info)}><Svg d={ICON.unread} /><span>Unread</span></button>
-        <button title="Leave chat" className="danger-tool" onClick={() => actions.leave(info)}><Svg d={ICON.leave} /><span>Leave</span></button>
+        <button title={wa ? (wa === 'group' ? 'Exit group and delete the chat' : 'Delete chat') : 'Leave chat'} className="danger-tool" onClick={() => actions.leave(info)}>
+          <Svg d={ICON.leave} /><span>{wa === 'dm' ? 'Delete' : 'Leave'}</span>
+        </button>
       </div>
     </aside>
   );

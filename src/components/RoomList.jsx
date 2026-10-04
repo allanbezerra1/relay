@@ -13,6 +13,7 @@ import { AskIcon } from './AskPanel.jsx';
 // Ask Relay's shortcut, as the keyboard shows it.
 const ASK_KEYS = window.relay?.platform === 'darwin' ? '⌘⇧A' : 'Ctrl+Shift+A';
 import { MEGAPHONE } from './Broadcast.jsx';
+import { waKind } from '../whatsapp-power.js';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -156,7 +157,9 @@ export default function RoomList({
     const list = picked;
     if (!(await ask({
       title: `Leave ${list.length} ${list.length > 1 ? 'chats' : 'chat'}?`,
-      body: 'This can’t be undone from Relay.',
+      body: list.some((r) => /^whatsapp/.test(r.baseNetwork || r.network || ''))
+        ? 'This can’t be undone. WhatsApp chats are deleted from your phone too, and you exit WhatsApp groups.'
+        : 'This can’t be undone from Relay.',
       list: list.map((r) => r.name), ok: `Leave ${list.length}`, danger: true, icon: 'leave',
     }))) return;
     setWorking({ done: 0, total: list.length });
@@ -185,7 +188,7 @@ export default function RoomList({
     { label: 'Copy name', icon: <Ico d={ICONS.copy} size={15} />, run: () => navigator.clipboard.writeText(r.name) },
     ...(menuExtras?.(r, { x: menu.x, y: menu.y }) || []),
     'separator',
-    { label: 'Leave chat', danger: true, icon: <Ico d={ICONS.leave} size={15} />, run: () => actions.leave(r) },
+    { label: /^whatsapp/.test(r.baseNetwork || r.network || '') ? (waKind(r.room, r.baseNetwork || r.network) === 'group' ? 'Exit group and delete' : 'Delete chat') : 'Leave chat', danger: true, icon: <Ico d={ICONS.leave} size={15} />, run: () => actions.leave(r) },
   ];
 
   return (
