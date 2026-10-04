@@ -7,6 +7,7 @@ const local = require('./local.cjs');
 const updater = require('./updater.cjs');
 require('./automations.cjs').init(); // automations: webhooks (auto:webhook)
 require('./smart.cjs').init(); // smart cards: addresses on the map (smart:geocode)
+const reminders = require('./reminders.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -575,6 +576,18 @@ app.whenReady().then(() => {
     ]));
   }
   createWindow();
+  reminders.init({
+    mainWindow: () => win,
+    getSession: () => matrixSession || readSession(),
+    onOpenMessage: (roomId) => {
+      if (!win) return;
+      if (win.isMinimized()) win.restore();
+      if (process.platform === 'darwin') app.show();
+      win.show();
+      win.focus();
+      win.webContents.send('notification:click', roomId);
+    },
+  });
   updater.init((s) => send('update:state', s));
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

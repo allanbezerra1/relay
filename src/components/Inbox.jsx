@@ -22,6 +22,7 @@ import CommunitiesPanel from './CommunitiesPanel.jsx';
 import { ask, notice } from '../dialogs.jsx';
 import { useOrganize } from './Organize.jsx';
 import { runAutomations } from '../automations.js';
+import { onReminder } from '../reminders.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -381,7 +382,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       setQuery('');
       openRoom(roomId);
     });
-    return () => { client.off(RoomEvent.Timeline, onTimeline); offClick(); };
+    const offReminder = onReminder('open-room', (roomId) => { setQuery(''); openRoom(roomId); });
+    return () => { client.off(RoomEvent.Timeline, onTimeline); offClick(); offReminder(); };
   }, [client, openRoom]);
 
   // ----- Keyboard shortcuts -----

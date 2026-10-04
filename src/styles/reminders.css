@@ -1,0 +1,144 @@
+/* ======================================================================
+   Message reminders (src/components/Reminders.jsx)
+   ====================================================================== */
+:root:not([data-style="glass"]) { --glass: var(--panel); --glass-strong: var(--panel-2, var(--panel)); --glass-line: var(--line); --glass-line-2: var(--line); --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent); --grad: linear-gradient(135deg, var(--accent-2), var(--accent)); --glow: none; --pop-shadow: var(--shadow); }
+
+/* ---------- Reminder dialog ---------- */
+.rem-overlay {
+  position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 16px;
+  background: rgba(4, 5, 10, 0.42); animation: fade 0.12s;
+}
+:root[data-theme="light"] .rem-overlay { background: rgba(230, 232, 245, 0.45); }
+.rem-dialog {
+  width: 380px; max-width: 100%; border-radius: 22px; padding: 16px; outline: none; color: var(--text);
+  background: var(--glass-strong); border: 1px solid var(--glass-line-2);
+  box-shadow: var(--pop-shadow), var(--glass-hi, 0 0 0 transparent); backdrop-filter: blur(40px) saturate(170%);
+  animation: rem-pop 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes rem-pop { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+.rem-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+.rem-head-icon {
+  width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--grad); color: #fff; box-shadow: var(--glow);
+}
+.rem-dialog.done .rem-head-icon { animation: rem-ring 0.6s ease-in-out; }
+@keyframes rem-ring { 20% { transform: rotate(-14deg); } 40% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(4deg); } }
+.rem-head-text { flex: 1; min-width: 0; }
+.rem-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.rem-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rem-x {
+  width: 28px; height: 28px; border-radius: 9px; border: 0; background: none; color: var(--text-3); font-size: 13px; flex-shrink: 0;
+}
+.rem-x:hover { background: var(--tint-2); color: var(--text); }
+.rem-quote {
+  display: grid; gap: 2px; padding: 9px 12px 9px 13px; margin-bottom: 10px; border-radius: 12px; position: relative;
+  background: var(--tint); border: 1px solid var(--glass-line); font-size: 13px; line-height: 1.45; overflow: hidden;
+}
+.rem-quote::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--grad); }
+.rem-quote b { font-size: 12px; font-weight: 650; color: var(--accent-2); }
+.rem-quote span { color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; }
+.rem-note {
+  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 11px; margin-bottom: 10px; border-radius: 11px;
+  background: var(--tint); border: 1px solid var(--glass-line-2); color: var(--text-3); transition: border-color 0.15s, box-shadow 0.15s;
+}
+.rem-note:focus-within { border-color: color-mix(in srgb, var(--accent-2) 60%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); color: var(--accent-2); }
+.rem-note input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--text); font: inherit; font-size: 13.5px; }
+.rem-options { display: grid; gap: 2px; }
+.rem-options button {
+  display: flex; align-items: center; gap: 10px; border: 0; background: none; text-align: left; padding: 7px 8px; border-radius: 11px;
+  color: var(--text); font-size: 13.5px; transition: background 0.08s;
+}
+.rem-options button.sel { background: var(--accent-soft); }
+.rem-opt-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--tint-2); color: var(--text-2); flex-shrink: 0; transition: background 0.12s, color 0.12s; }
+.rem-options button.sel .rem-opt-icon { background: var(--grad); color: #fff; }
+.rem-opt-label { flex: 1; font-weight: 500; }
+.rem-opt-when { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rem-custom { display: grid; gap: 10px; }
+.rem-custom input, .rem-edit-row input, .rem-item-note-input {
+  height: 38px; border-radius: 10px; padding: 0 10px; border: 1px solid var(--glass-line-2); background: var(--tint);
+  color: var(--text); font: inherit; font-size: 13.5px; outline: none; color-scheme: light dark;
+}
+.rem-custom input:focus, .rem-edit-row input:focus, .rem-item-note-input:focus { border-color: color-mix(in srgb, var(--accent-2) 60%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.rem-custom-row { display: flex; gap: 8px; }
+.rem-custom-row .rem-primary { flex: 1; }
+.rem-primary, .rem-ghost, .sc-primary, .sc-ghost {
+  height: 34px; padding: 0 14px; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap;
+  transition: filter 0.12s, background 0.12s, transform 0.1s;
+}
+.rem-primary, .sc-primary { border: 0; background: var(--grad); color: #fff; box-shadow: var(--glow); }
+.rem-primary:hover, .sc-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.rem-primary:active, .sc-primary:active:not(:disabled) { transform: scale(0.98); }
+.sc-primary:disabled { opacity: 0.55; box-shadow: none; cursor: default; }
+.rem-ghost, .sc-ghost { border: 1px solid var(--glass-line-2); background: var(--tint); color: var(--text); }
+.rem-ghost:hover, .sc-ghost:hover:not(:disabled) { background: var(--tint-2); }
+.sc-ghost.danger { color: var(--danger, #ef4444); }
+.rem-done {
+  display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 12px;
+  background: var(--accent-soft); color: var(--accent-2); font-weight: 650; font-size: 13.5px; animation: rem-pop 0.2s ease-out;
+}
+.rem-error { margin-top: 8px; font-size: 12.5px; color: var(--danger, #ef4444); }
+.rem-foot {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--glass-line);
+  font-size: 11.5px; color: var(--text-3); line-height: 1.4;
+}
+.rem-foot span { flex: 1; }
+.rem-remove {
+  display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 4px 6px; border-radius: 8px;
+  color: var(--danger, #ef4444); font: inherit; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.rem-remove:hover { background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent); }
+
+/* ---------- 🔔 chip on messages ---------- */
+.rem-chip {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin-top: 4px;
+  height: 22px; padding: 0 9px 0 7px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--accent-2) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--glass-strong)); color: var(--accent-2);
+  font: inherit; font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap;
+  box-shadow: 0 4px 14px -8px var(--accent); transition: background 0.12s, transform 0.1s;
+}
+.rem-chip svg { flex-shrink: 0; animation: rem-chip-ring 3.5s ease-in-out infinite; transform-origin: 50% 10%; }
+@keyframes rem-chip-ring { 0%, 86%, 100% { transform: none; } 89% { transform: rotate(-16deg); } 93% { transform: rotate(14deg); } 97% { transform: rotate(-6deg); } }
+.rem-chip:hover { background: color-mix(in srgb, var(--accent) 22%, var(--glass-strong)); }
+.rem-chip:active { transform: scale(0.97); }
+.rem-chip-note { color: var(--text-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.msg.mine .rem-chip { align-self: flex-end; }
+:root[data-motion="off"] .rem-chip svg { animation: none; }
+
+/* ---------- Settings → Reminders ---------- */
+.rem-pane-list { padding: 6px !important; }
+.rem-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 8px 10px 12px; border-radius: 11px; }
+.rem-item:hover { background: var(--tint); }
+.rem-item + .rem-item { border-top: 1px solid var(--glass-line); }
+.rem-item.editing { display: grid; gap: 8px; background: var(--tint); }
+.rem-item-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.rem-item-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rem-when { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 650; color: var(--accent-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rem-when.late { color: #e0a33c; }
+.rem-room {
+  display: inline-flex; align-items: center; gap: 2px; border: 0; background: var(--tint-2); color: var(--text-2); font-size: 11.5px; font-weight: 600;
+  padding: 2px 4px 2px 9px; border-radius: 99px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+}
+.rem-room:hover { color: var(--text); background: var(--accent-soft); }
+.rem-item-note { font-size: 13px; font-weight: 600; color: var(--text); }
+.rem-item-text { font-size: 12.5px; line-height: 1.45; color: var(--text-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rem-item-text b { color: var(--text-2); font-weight: 600; }
+.rem-actions { display: flex; gap: 2px; opacity: 0.55; transition: opacity 0.12s; }
+.rem-item:hover .rem-actions { opacity: 1; }
+.rem-actions button { width: 30px; height: 30px; border-radius: 9px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; }
+.rem-actions button:hover { background: var(--tint-2); color: var(--text); }
+.rem-actions button.rem-danger:hover { color: var(--danger, #ef4444); background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent); }
+.rem-edit-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rem-spacer { flex: 1; }
+
+
+.rem-empty { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 28px 24px 8px; color: var(--text-2); font-size: 13px; }
+.rem-empty b { color: var(--text); font-size: 15px; margin-top: 8px; }
+.rem-empty span:last-child { max-width: 360px; line-height: 1.5; }
+.rem-empty-icon {
+  width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; color: #fff;
+  background: var(--grad); box-shadow: var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rem-dialog, .rem-done, .rem-chip svg { animation: none; }
+}

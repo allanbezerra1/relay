@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useContextMenu } from './ContextMenu.jsx';
+import { askReminder, remindersAvailable } from '../reminders.js';
+import { ReminderChip } from './Reminders.jsx';
 import { EventStatus, EventType, MsgType } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
 import VoicePlayer, { fmt } from './VoicePlayer.jsx';
@@ -24,6 +26,7 @@ const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|‍|️|\s
 
 const I = {
   reply: 'M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11Z',
+  bell: 'M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z',
   edit: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z',
   trash: 'M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z',
   copy: 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
@@ -511,6 +514,11 @@ function Message({
     };
   };
 
+  const reminderTarget = () => ({
+    roomId: room.roomId, eventId: ev.getId(), roomName: cleanName(room.name || ''),
+    sender: mine ? 'You' : sender,
+    text: copyable ? stripReplyFallback(content.body || '') : previewText(room, ev, client?.getUserId()).replace(/^[^:]+: /, ''),
+  });
   const onContextMenu = (e) => {
     if (ev.isRedacted()) return;
     const sel = window.getSelection()?.toString();
@@ -527,6 +535,7 @@ function Message({
       link && { label: 'Open link in browser', icon: <span>↗</span>, run: () => window.open(link, '_blank') },
       isImage && { label: 'Open image', icon: <span>🖼</span>, run: () => mediaEl()?.click() },
       isImage && { label: 'Copy image', icon: <Svg d={I.copy} size={15} />, run: () => { const u = mediaUrl(); if (u) copyImage(u).then(() => onToast?.('Image copied'), (err) => onToast?.(`Couldn’t copy: ${err.message}`)); } },
+      !ev.status && remindersAvailable() && { label: 'Remind me about this…', icon: <Svg d={I.bell} size={15} />, run: () => askReminder(reminderTarget()) },
       seenBy && { label: 'Seen by…', icon: <Svg d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" size={15} />, run: () => setSeenOpen(seenBy()) },
       stickerItem(),
       (isMedia || isAudio || content.msgtype === MsgType.File) && { label: 'Save…', icon: <Svg d={I.download} size={15} />, run: saveMedia },
@@ -608,6 +617,8 @@ function Message({
             {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
           </button>
         )}
+        {!ev.status && <ReminderChip roomId={room.roomId} eventId={ev.getId()} roomName={cleanName(room.name || '')} sender={mine ? 'You' : sender}
+          text={copyable ? stripReplyFallback(content.body || '') : undefined} />}
         {isAudio && !ev.isRedacted() && <Transcribe client={client} ev={ev} content={content} mine={mine} />}
 
         {reactions.length > 0 && (
