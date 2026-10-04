@@ -22,6 +22,11 @@ import CommunitiesPanel from './CommunitiesPanel.jsx';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
+// Groups you flagged ⭐: they stay in "Main" (and can notify) when groups have their own tab.
+export const TAG_IMPORTANT = 'u.relay.important';
+
+/** WhatsApp's status updates room (status@broadcast): neither a chat nor a group. */
+const isStatusRoom = (room) => room.currentState.getStateEvents('m.bridge').some((e) => e.getContent()?.channel?.id === 'status@broadcast');
 
 /** Management rooms / DMs with a bridge bot, which have no m.bridge marker (real chats do). */
 function isBridgeInternal(room) {
@@ -50,6 +55,7 @@ function collectRooms(client, isLocal) {
         invite: room.getMyMembership() === KnownMembership.Invite,
         pinned: !!tags[TAG_PINNED],
         archived: !!tags[TAG_ARCHIVED],
+        importantGroup: !!tags[TAG_IMPORTANT],
         muted: isMuted(client, room.roomId),
         group: !direct.has(room.roomId), // groups and channels
         labels: labels.filter((l) => tags[labelTag(l.id)]),
@@ -135,6 +141,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [labelFilter, setLabelFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null); // null | 'dm' | 'group'
   const [query, setQuery] = useState('');
+  // "Main" / "Groups" tabs (Settings → General → Groups in their own tab).
+  const [section, setSectionState] = useState(() => { try { return localStorage.getItem('relay.section') || 'main'; } catch { return 'main'; } });
+  const setSection = (v) => { setSectionState(v); try { localStorage.setItem('relay.section', v); } catch {} };
+  const split = usePrefs().splitGroups;
   const [switcher, setSwitcher] = useState(false);
   const [settings, setSettings] = useState(null); // null | section id
   const [newGroup, setNewGroup] = useState(false);
@@ -256,15 +266,24 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     return rooms.filter((r) => {
       if (q) return r.name.toLowerCase().includes(q) || r.preview.toLowerCase().includes(q);
       if (!matchesFilter(r, filter)) return false;
-      if (view === 'archive' ? !r.archived : r.archived) return false;
+      // "Groups": every group, archived or not. "Main": one-to-one chats + groups flagged ⭐.
+      if (split && view === 'inbox' && section === 'groups') {
+        if (!r.group || isStatusRoom(r.room)) return false;
+      } else {
+        if (view === 'archive' ? !r.archived : r.archived) return false;
+        if (split && view === 'inbox' && r.group && !r.importantGroup && !r.pinned) return false;
+      }
       if (unreadOnly && !(r.unread || r.markedUnread || r.id === activeId)) return false;
       if (labelFilter && !r.labels.some((l) => l.id === labelFilter)) return false;
       if (typeFilter === 'dm' && r.group) return false;
       if (typeFilter === 'group' && !r.group) return false;
       return true;
     });
-  }, [rooms, query, filter, view, unreadOnly, labelFilter, typeFilter, activeId, matchesFilter]);
+  }, [rooms, query, filter, view, unreadOnly, labelFilter, typeFilter, activeId, matchesFilter, split, section]);
   const allLabels = getLabels(client);
+  const inMain = (r) => !split || !r.group || r.importantGroup || r.pinned;
+  const unreadMain = rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread) && inMain(r)).length;
+  const groupsUnread = rooms.filter((r) => r.group && !r.muted && !isStatusRoom(r.room) && (r.unread || r.markedUnread)).length;
 
   const active = rooms.find((r) => r.id === activeId) || null;
   const filterItem = railItems.find((i) => i.filter === filter);
@@ -293,8 +312,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
 
   // ----- Dock badge -----
   const badge = prefs.badge === 'off' ? 0
-    : prefs.badge === 'chats' ? rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread)).length
-    : rooms.reduce((n, r) => n + (r.archived || r.muted ? 0 : r.unread), 0);
+    : prefs.badge === 'chats' ? rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread) && inMain(r)).length
+    : rooms.reduce((n, r) => n + (r.archived || r.muted || !inMain(r) ? 0 : r.unread), 0);
   useEffect(() => window.relay.setBadge(badge), [badge]);
   const unreadChats = rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread)).length;
 
@@ -322,6 +341,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       if (focused && activeId === room.roomId) { uiSound('receive'); return; }
       if (!p.notifications) return;
       const isDM = peopleCount(room) <= 2;
+      // With quiet groups on, groups not flagged ⭐ stay quiet unless they mention you.
+      if (!isDM && p.splitGroups && p.quietGroups && !room.tags?.[TAG_IMPORTANT] && !actions.tweaks?.highlight) return;
       if (!isDM && p.notifGroups === 'mentions' && !actions.tweaks?.highlight) return;
       // App in front but another chat: in-app "push" sound; otherwise the notification tone.
       if (p.notifSound && actions.tweaks?.sound !== false) {
@@ -412,6 +433,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       }
     },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
+    toggleImportant: (r) => (r.importantGroup ? client.deleteRoomTag(r.id, TAG_IMPORTANT) : client.setRoomTag(r.id, TAG_IMPORTANT, { order: 0.5 })),
     leave: async (r) => {
       if (!confirm(`Leave “${r.name}”? This can’t be undone from Relay.`)) return;
       await client.leave(r.id);
@@ -514,6 +536,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           onSettings={() => setSettings('general')}
           onDropFiles={dropOnRoom}
           onNewGroup={isLocal ? () => setNewGroup(true) : null}
+          section={split && view === 'inbox' && !query ? section : null} setSection={setSection}
+          sectionCounts={{ main: unreadMain, groups: groupsUnread }}
         />
       )}
 

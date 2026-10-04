@@ -14,6 +14,8 @@ export const DEFAULTS = {
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it
   autoUnarchive: true,
   showPreviews: true,     // last message under each chat in the list
+  splitGroups: true,      // "Main" (one-to-one chats + ⭐ groups) and "Groups" tabs
+  quietGroups: false,     // with the tabs on: groups not flagged ⭐ only notify when they mention you
   // Notifications
   notifications: true,
   notifPreview: true,

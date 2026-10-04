@@ -97,6 +97,10 @@ function General({ client, isLocal }) {
       <Group title="Chats">
         <Toggle label="Send with Enter" hint={p.enterToSend ? 'Shift+Enter adds a new line.' : 'Use ⌘+Enter to send.'} checked={p.enterToSend} onChange={(v) => setPref('enterToSend', v)} />
         <Toggle label="Show message previews in the chat list" checked={p.showPreviews} onChange={(v) => setPref('showPreviews', v)} />
+        <Toggle label="Groups in their own tab" hint="“Main” keeps one-to-one chats and the groups you flag ⭐ (right-click a group); “Groups” has every group, archived or not."
+          checked={p.splitGroups} onChange={(v) => setPref('splitGroups', v)} />
+        <Toggle label="Quiet groups" hint="Groups not flagged ⭐ only notify you when they mention you." disabled={!p.splitGroups}
+          checked={p.quietGroups} onChange={(v) => setPref('quietGroups', v)} />
         <Toggle label="Move archived chats back to the inbox on new messages" hint="Muted chats always stay archived." checked={p.autoUnarchive} onChange={(v) => setPref('autoUnarchive', v)} />
       </Group>
       {isLocal && (
