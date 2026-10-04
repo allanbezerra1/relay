@@ -3,7 +3,7 @@ import { ClientEvent, HttpApiEvent, SyncState } from 'matrix-js-sdk';
 import { startClient, signOut } from './matrix.js';
 import Login from './components/Login.jsx';
 import Inbox from './components/Inbox.jsx';
-import Logo from './components/Logo.jsx';
+import Splash from './components/Splash.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import { local, cleanError } from './local.js';
 
@@ -65,30 +65,12 @@ export default function App() {
     setPhase('login');
   };
 
-  if (phase === 'local-error') {
-    return (
-      <div className="splash">
-        <div className="drag-region" />
-        <Logo size={76} className="logo-pulse" />
-        <p>Your local chat server didn’t start.</p>
-        <div className="error" style={{ maxWidth: 460 }}>{error}</div>
-        <div className="row">
-          <button className="ghost" onClick={() => local().openLogs()}>Show logs</button>
-          <button className="primary" onClick={() => window.relay.getSession().then(boot)}>Try again</button>
-        </div>
-      </div>
-    );
-  }
+  // index.html?splash=syncing|starting-local|local-error: look at the opening screen without restarting.
+  const preview = new URLSearchParams(window.location.search).get('splash');
+  if (preview) return <Splash phase={preview} isLocal error={preview === 'local-error' ? 'Synapse exited with code 1 (see the logs).' : null} onLogs={() => {}} onRetry={() => {}} />;
   if (phase === 'login') return <Onboarding onLogin={handleLogin} initialError={error} />;
   if (phase !== 'ready' || !client) {
-    return (
-      <div className="splash">
-        <div className="drag-region" />
-        <Logo size={76} className="logo-pulse" />
-        <div className="spinner" />
-        <p>{phase === 'starting-local' ? 'Starting your chat server…' : phase === 'syncing' ? 'Syncing your chats…' : 'Starting…'}</p>
-      </div>
-    );
+    return <Splash phase={phase} isLocal={isLocal} error={error} onLogs={() => local().openLogs()} onRetry={() => window.relay.getSession().then(boot)} />;
   }
   return <Inbox client={client} isLocal={isLocal} onSignOut={handleSignOut} />;
 }
