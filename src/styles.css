@@ -1706,3 +1706,8 @@ body { background: var(--panel); }
 .cm-gname { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-group.unread .cm-gname { font-weight: 700; }
 .cm-empty { padding: 6px 8px; }
+
+/* Formatting written as plain text (Message.jsx → Formatted) */
+.fmt-code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.92em; padding: 1px 5px; border-radius: 6px; background: color-mix(in srgb, var(--text) 10%, transparent); }
+.fmt-block { display: block; white-space: pre-wrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.9em; padding: 8px 10px; margin: 4px 0; border-radius: 10px; background: color-mix(in srgb, var(--text) 9%, transparent); }
+.msg.mine .fmt-code, .msg.mine .fmt-block { background: rgba(255, 255, 255, 0.16); }
