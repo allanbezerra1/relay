@@ -22,11 +22,15 @@ import BackupPanel from './BackupPanel.jsx';
 import ImportSettings from './ImportSettings.jsx';
 import AISettings from './AISettings.jsx';
 import { SPARK_PATH } from './SummaryCard.jsx';
+import { useCalls, connectCalls, openCalls, setCallsEnabled, disconnectCalls, callsAvailable } from '../calls.js';
+import CallDiagnostics from './CallDiagnostics.jsx';
+import { PHONE_D } from './CallUI.jsx';
 
 export const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
   { id: 'accounts', label: 'Accounts', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14Z', localOnly: true },
   { id: 'notifications', label: 'Notifications', icon: 'M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z' },
+  { id: 'calls', label: 'Calls', icon: PHONE_D, localOnly: true, needsCalls: true },
   { id: 'appearance', label: 'Appearance', icon: 'M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z' },
   { id: 'automations', label: 'Automations', icon: 'M7 2v11h3v9l7-12h-4l4-8H7Z' },
   { id: 'quickreplies', label: 'Quick replies', icon: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm-2 12H6v-2h12v2Zm0-3H6V9h12v2Zm0-3H6V6h12v2Z' },
@@ -434,6 +438,70 @@ function About() {
   );
 }
 
+function Calls() {
+  const c = useCalls();
+  const connected = c.linked && c.status === 'ready';
+  const label = connected ? 'Linked'
+    : c.status === 'qr' ? 'Waiting for the QR code'
+    : c.linked && c.status === 'off' ? 'Paused'
+    : c.linked || c.status === 'loading' ? 'Connecting…' : 'Not linked';
+  const tone = connected ? 'ok' : c.status === 'qr' || c.status === 'loading' ? 'wait' : 'off';
+  const disconnect = () => {
+    if (window.confirm('Unlink WhatsApp Web from Relay? Calls stop working here until you link it again. Your messages aren’t affected.')) disconnectCalls();
+  };
+  return (
+    <>
+      <h2 className="pane-title">Calls</h2>
+      <div className="calls-hero">
+        <span className="ch-bubble"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d={PHONE_D} /></svg></span>
+        <div className="ch-text">
+          <h3>WhatsApp voice & video calls</h3>
+          <p>Place and answer WhatsApp calls from your Mac. Relay uses WhatsApp Web only for calls; your messages keep coming through the bridge on this Mac.</p>
+          <div className="ch-row">
+            <span className={`ch-status ${tone}`}><i />{label}</span>
+            {!c.linked && c.status !== 'qr' && <button className="cd-btn" onClick={connectCalls}>Link WhatsApp Web</button>}
+            {(c.linked || c.status === 'qr') && <button className="cd-btn ghosty" onClick={openCalls}>{c.status === 'qr' ? 'Show QR code' : 'Open WhatsApp Web'}</button>}
+          </div>
+        </div>
+      </div>
+
+      {!c.linked && (
+        <Group title="How to link">
+          <ol className="calls-steps">
+            <li>Click <b>Link WhatsApp Web</b>. A window with a QR code opens.</li>
+            <li>On your phone: <b>WhatsApp → Settings → Linked devices → Link a device</b>.</li>
+            <li>Scan the QR code. That’s it: call buttons show up in your WhatsApp chats.</li>
+          </ol>
+        </Group>
+      )}
+
+      <Group title="Preferences">
+        <Toggle label="Receive calls on this computer"
+          hint="Keeps WhatsApp Web running in the background so calls ring here too (uses about 300 MB of memory)."
+          checked={c.enabled} disabled={!c.linked} onChange={setCallsEnabled} />
+      </Group>
+
+      {c.linked && (
+        <Group title="Connection">
+          <div className="setting">
+            <span className="setting-text">
+              <span className="setting-label">Unlink WhatsApp Web</span>
+              <span className="setting-hint">Signs the calls session out of this computer. Your messages aren’t affected.</span>
+            </span>
+            <button className="cd-btn ghosty cd-unlink" onClick={disconnect}>Unlink</button>
+          </div>
+        </Group>
+      )}
+      <CallDiagnostics />
+
+      <p className="pane-text muted small">
+        WhatsApp Web counts as one more linked device (up to 4). The first call asks for microphone and camera access;
+        you can change it later in System Settings → Privacy & Security.
+      </p>
+    </>
+  );
+}
+
 // ---------- Dialog ----------
 
 export default function Settings({ client, isLocal, section = 'general', onSection, onClose, onSignOut }) {
@@ -443,7 +511,7 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
     return () => window.removeEventListener('keydown', esc);
   }, [onClose]);
 
-  const sections = SECTIONS.filter((s) => (!s.localOnly || isLocal) && (!s.needsImports || !!window.relay.imports));
+  const sections = SECTIONS.filter((s) => (!s.localOnly || isLocal) && (!s.needsImports || !!window.relay.imports) && (!s.needsCalls || callsAvailable()));
   const current = sections.some((s) => s.id === section) ? section : 'general';
 
   return (
@@ -462,6 +530,7 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
           {current === 'general' && <General client={client} isLocal={isLocal} />}
           {current === 'accounts' && <Accounts embedded onClose={onClose} />}
           {current === 'notifications' && <Notifications />}
+          {current === 'calls' && <Calls />}
           {current === 'appearance' && <Appearance />}
           {current === 'automations' && <AutomationsSettings client={client} />}
           {current === 'quickreplies' && <QuickRepliesPane client={client} />}

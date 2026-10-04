@@ -14,6 +14,7 @@ const reliability = require('./reliability.cjs');
 require('./imports.cjs').init(); // old WhatsApp history from an iPhone backup or an exported .zip (import:* IPC)
 require('./ai.cjs').init(); // local AI summaries via LM Studio (ai:* IPC)
 require('./semantic.cjs').init(); // Ask Relay: search-by-meaning index of your chats (ask:* IPC)
+const calls = require('./calls.cjs'); // WhatsApp voice & video calls through WhatsApp Web
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -157,7 +158,11 @@ function createWindow() {
       else app.hide();
     }
   });
-  win.on('closed', () => (win = null));
+  win.on('closed', () => {
+    win = null;
+    // Elsewhere closing the window quits; the hidden WhatsApp Web window (calls) mustn't keep Relay alive.
+    if (process.platform !== 'darwin') app.quit();
+  });
 }
 
 // ---------- IPC ----------
@@ -596,6 +601,11 @@ app.whenReady().then(() => {
       win.focus();
       win.webContents.send('notification:click', roomId);
     },
+  });
+  calls.init({
+    mainWindow: () => win,
+    resolveTarget: async (roomId) => local.whatsappChatTarget(roomId),
+    onState: (st) => send('calls:state', st),
   });
   updater.init((s) => send('update:state', s));
   // Scheduled messages go out from here, window open or not, with the session the window signed in with.

@@ -20,6 +20,8 @@ import { burstReaction, useLiveArrivals } from '../fx.js';
 import { on } from '../bus.js';
 import SummaryCard, { SummarizeButton, useSummaryRequest } from './SummaryCard.jsx';
 import { TranslateChatButtons } from './Translate.jsx';
+import { CallButtons } from './CallUI.jsx';
+import { callsAvailable } from '../calls.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -421,7 +423,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     return (
       <section className="chat">
         <div className="chat-main">
-        <ChatHeader client={client} info={info} onToggleInfo={() => {}} />
+        <ChatHeader client={client} info={info} onToggleInfo={() => {}} onToast={showToast} />
         <div className="invite">
           <Avatar src={roomAvatar(client, room, 160)} name={info.name} id={room.roomId} size={88} network={info.network} />
           <h2>{info.name}</h2>
@@ -572,6 +574,8 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
 function ChatHeader({ client, info, infoOpen, onToggleInfo, summaryOpen, onSummarize, onToast }) {
   const { room } = info;
   const muted = isMuted(client, room.roomId);
+  const canCall = callsAvailable() && /^whatsapp/.test(info.network || '')
+    && !room.currentState.getStateEvents('m.bridge').some((e) => e.getContent()?.channel?.id === 'status@broadcast');
   return (
     <header className="chat-float">
       <div className="drag-region" />
@@ -583,10 +587,16 @@ function ChatHeader({ client, info, infoOpen, onToggleInfo, summaryOpen, onSumma
           <svg viewBox="0 0 24 24" width="16" height="16" className={`chev ${infoOpen ? 'open' : ''}`}><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6 1.4-1.4Z" /></svg>
         </span>
       </button>
-      {onSummarize && !info.invite && (
+      {/* One row on the right of the header: Translate · Summarize · voice / video call. */}
+      {((onSummarize && !info.invite) || canCall) && (
         <div className="chat-ai-tools">
-          <TranslateChatButtons client={client} room={room} onToast={onToast} />
-          <SummarizeButton info={info} open={summaryOpen} onClick={onSummarize} />
+          {onSummarize && !info.invite && (
+            <>
+              <TranslateChatButtons client={client} room={room} onToast={onToast} />
+              <SummarizeButton info={info} open={summaryOpen} onClick={onSummarize} />
+            </>
+          )}
+          {canCall && <CallButtons roomId={room.roomId} name={info.name} onError={onToast} />}
         </div>
       )}
       <button className={`float-panel-btn ${infoOpen ? 'on' : ''}`} onClick={onToggleInfo} title={infoOpen ? 'Hide details' : 'Show details'}>

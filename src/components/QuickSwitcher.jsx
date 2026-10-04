@@ -109,7 +109,7 @@ export default function QuickSwitcher({ client, rooms, active, actions, view, is
     }
     add('settings', 'Settings', P.gear, () => onSettings('general'), { ...g, hint: combo(','), keywords: ['preferences', 'options'] });
     for (const s of SECTIONS) {
-      if (s.id === 'general' || (s.localOnly && !isLocal) || (s.needsImports && !window.relay.imports)) continue;
+      if (s.id === 'general' || (s.localOnly && !isLocal) || (s.needsImports && !window.relay.imports) || (s.needsCalls && !window.relay.calls)) continue;
       add(`settings-${s.id}`, `Settings › ${s.label}`, s.icon, () => onSettings(s.id), { group: 'settings', keywords: [s.label] });
     }
     return a;

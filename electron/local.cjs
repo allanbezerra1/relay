@@ -1053,6 +1053,24 @@ function scheduleTagImport() {
   }, 10 * 60 * 1000);
 }
 
+// ---------- WhatsApp calls (see calls.cjs) ----------
+
+/** Who to call for a WhatsApp chat: the phone number of a person, or the name to search for. */
+function whatsappChatTarget(roomId) {
+  return withWhatsAppDb((db) => {
+    const p = db.prepare('SELECT id, name, other_user_id FROM portal WHERE mxid = ?').get(roomId);
+    if (!p) return null;
+    const [user, server] = String(p.id).split('@');
+    if (server === 'g.us') return { group: true, name: p.name || null };
+    let phone = null;
+    if (server === 's.whatsapp.net') phone = user;
+    else if (server === 'lid') phone = db.prepare('SELECT pn FROM whatsmeow_lid_map WHERE lid = ?').get(user)?.pn || null;
+    // The person's name as the bridge shows it, for the search fallback.
+    const ghost = p.other_user_id && db.prepare('SELECT name FROM ghost WHERE id = ?').get(p.other_user_id);
+    return { group: false, phone: phone ? String(phone).split(':')[0] : null, name: ghost?.name || p.name || null };
+  });
+}
+
 // ---------- Starting a direct chat from a group member ----------
 
 /**
@@ -1145,7 +1163,7 @@ module.exports = {
   HS_URL, MY_ID, BRIDGES,
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
-  favoriteStickers, syncFavoriteStickers, whatsappViewing, whatsappRecording, createGroup,
+  favoriteStickers, syncFavoriteStickers, whatsappViewing, whatsappRecording, whatsappChatTarget, createGroup,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
   P, isBridgeInstalled, isSupported, procInfo, repairMissing, whenIdle,

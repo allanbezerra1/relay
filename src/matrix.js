@@ -202,6 +202,11 @@ export function isState(ev) {
 
 /** "**bold**", "_italic_"… without the markers, for one-line previews. */
 const plainMarkers = (t) => t.replace(/```([\s\S]+?)```|`([^`\n]+)`|\*\*(\S[\s\S]*?\S|\S)\*\*|(?<![\w*])[*_~](\S[^*_~\n]*?\S|\S)[*_~](?![\w*_~])/g, (m, a, b, c, d) => a ?? b ?? c ?? d ?? m);
+/** A bridge's call notice ("Incoming call", com.beeper.action_message), or null. */
+export function callAction(ev) {
+  const a = ev?.getContent?.()?.['com.beeper.action_message'];
+  return a?.type === 'call' ? { video: a.call_type === 'video' } : null;
+}
 
 export function previewText(room, ev, myUserId) {
   if (!ev) return '';
@@ -212,6 +217,7 @@ export function previewText(room, ev, myUserId) {
   const who = ev.getSender() === myUserId ? 'You' : null;
   let text;
   if (ev.getType() === EventType.Sticker) text = 'Sticker';
+  else if (callAction(ev)) text = callAction(ev).video ? '🎥 Video call' : '📞 Voice call';
   else if (c['dev.relay.view_once'] || (c.msgtype === MsgType.Notice && /view once message/i.test(c.body || ''))) text = '① View once message';
   else switch (c.msgtype) {
     case MsgType.Image: text = '📷 Photo'; break;

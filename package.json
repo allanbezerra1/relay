@@ -24,7 +24,8 @@
     "mac": {
       "category": "public.app-category.social-networking",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Relay uses the microphone to record voice messages."
+        "NSMicrophoneUsageDescription": "Relay uses the microphone to record voice messages and for WhatsApp calls.",
+        "NSCameraUsageDescription": "Relay uses the camera for WhatsApp video calls."
       }
     },
     "directories": {
