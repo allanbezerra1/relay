@@ -11,6 +11,7 @@ import { SchedulePopover, ScheduledStrip } from './Scheduled.jsx';
 import { schedulingAvailable } from '../scheduled.js';
 import { combo } from '../platform.js';
 import { on } from '../bus.js';
+import MediaTray from './MediaTray.jsx';
 
 const drafts = new Map(); // roomId -> text, kept while the app is open
 
@@ -122,7 +123,7 @@ function useVoiceRecorder() {
 
 const Composer = forwardRef(function Composer(
   { client, room, network, networkId, roomName, replyTo, editing, onCancel, onSent, onEditLast, onFiles, onVoice,
-    staged = [], onUnstage, onClearStaged, onSendStaged },
+    staged = [], onUnstage, onClearStaged, onSendStaged, onStagedChange },
   ref,
 ) {
   const [text, setText] = useState(() => drafts.get(room.roomId) || '');
@@ -224,15 +225,31 @@ const Composer = forwardRef(function Composer(
   const [viewOnce, setViewOnce] = useState(false);
   const canViewOnce = /^whatsapp/.test(networkId || '');
   const stagedMediaOnly = staged.length > 0 && staged.every((s) => /^(image|video)\//.test(s.file.type));
+  // Each staged item has its own caption; the text box edits the selected one's.
+  const [selId, setSelId] = useState(null);
+  const selItem = staged.find((s) => s.id === selId) || staged[0];
+  const captionOf = useRef(null);
+  useEffect(() => {
+    const id = selItem?.id || null;
+    if (captionOf.current === id) return;
+    if (captionOf.current && id) setText(selItem.caption || ''); // the first item keeps what was already typed
+    captionOf.current = id;
+  }, [selItem?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectStaged = (id) => {
+    if (selItem && id !== selItem.id) onStagedChange((list) => list.map((x) => (x.id === selItem.id ? { ...x, caption: text } : x)));
+    setSelId(id);
+    input.current?.focus();
+  };
   const send = async () => {
     const body = text.trim();
     if (staged.length) {
+      const items = staged.map((x) => ({ ...x, caption: (x.id === selItem.id ? body : x.caption || '').trim() }));
       setText('');
       drafts.delete(room.roomId);
       const reply = replyTo;
       onSent();
       uiSound('send');
-      await onSendStaged(body, asDocument, reply, viewOnce && stagedMediaOnly && !asDocument);
+      await onSendStaged(items, asDocument, reply, viewOnce && stagedMediaOnly && !asDocument);
       setAsDocument(false);
       setViewOnce(false);
       return;
@@ -340,29 +357,10 @@ const Composer = forwardRef(function Composer(
         </div>
       )}
       {staged.length > 0 && (
-        <div className="stage-tray">
-          <div className="stage-items">
-            {staged.map((s) => (
-              <div key={s.id} className="stage-item" title={s.file.name}>
-                {s.preview && s.file.type.startsWith('image/') ? <img src={s.preview} alt="" />
-                  : s.preview ? <video src={s.preview} muted />
-                  : <div className="stage-file"><span>{(s.file.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase()}</span></div>}
-                <span className="stage-name">{s.file.name}</span>
-                <button className="stage-x" onClick={() => onUnstage(s.id)} title="Remove">✕</button>
-              </div>
-            ))}
-            <button className="stage-add" onClick={() => photoInput.current?.click()} title="Add more"><Icon d={ICON.plus} size={22} /></button>
-          </div>
-          <div className="stage-foot">
-            <span className="muted small">{staged.length} {staged.length === 1 ? 'file' : 'files'} · type a caption below, then send</span>
-            {canViewOnce && stagedMediaOnly && !asDocument && (
-              <button className={`view-once-btn ${viewOnce ? 'on' : ''}`} onClick={() => setViewOnce(!viewOnce)}
-                title={viewOnce ? 'View once: on (they can open it one time)' : 'Send as view once'}>1</button>
-            )}
-            <label className="stage-doc"><input type="checkbox" checked={asDocument} onChange={(e) => setAsDocument(e.target.checked)} /> Send as document (original quality)</label>
-            <button className="bulk-link" onClick={onClearStaged}>Discard</button>
-          </div>
-        </div>
+        <MediaTray staged={staged} onChange={onStagedChange} selectedId={selItem?.id} onSelect={selectStaged}
+          asDocument={asDocument} onAsDocument={setAsDocument} onClear={onClearStaged} onRemove={onUnstage}
+          onAddMore={() => photoInput.current?.click()}
+          canViewOnce={canViewOnce && stagedMediaOnly && !asDocument} viewOnce={viewOnce} onViewOnce={setViewOnce} />
       )}
       {voiceError && <div className="composer-error">{voiceError} <button onClick={() => setVoiceError(null)}>✕</button></div>}
 

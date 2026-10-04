@@ -16,6 +16,7 @@ import './styles/smart-cards.css';
 import './styles/instagram.css';
 import './styles/reminders.css';
 import './styles/power.css';
+import './styles/media.css';
 import { DialogHost } from './dialogs.jsx';
 import { ReminderHost } from './components/Reminders.jsx';
 import { applyAppearance } from './prefs.js';
