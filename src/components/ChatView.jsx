@@ -12,6 +12,7 @@ import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
 import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
+import { ChatWallpaper } from './Wallpaper.jsx';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -396,6 +397,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
       onDrop={(e) => { e.preventDefault(); setDragging(false); stageFiles([...e.dataTransfer.files]); }}
     >
       <div className="chat-main">
+      <ChatWallpaper client={client} room={room} />
       <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo} />
 
       <div className={`timeline ${threadRoot ? 'behind-thread' : ''}`} ref={scrollRef} onScroll={onScroll}>

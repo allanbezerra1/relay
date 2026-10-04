@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, safeStorage, Notification, shell, session, Menu, nativeTheme, systemPreferences } = require('electron');
+const { app, BrowserWindow, ipcMain, safeStorage, Notification, shell, session, Menu, nativeTheme, systemPreferences, dialog } = require('electron');
 const os = require('node:os');
 const { execFile } = require('node:child_process');
 const path = require('node:path');
@@ -376,6 +376,47 @@ ipcMain.handle('app:customSounds', () => {
     interface: Object.fromEntries(list('interface').map((f) => [f.replace(/^sound_|\.[^.]+$/g, ''), url('interface', f)])),
     notifications: list('notifications').map((f) => [f.replace(/\.[^.]+$/, ''), url('notifications', f)]),
   };
+});
+
+// ---------- Chat wallpapers ----------
+// Pictures you pick are copied into <app data>/wallpapers (named by content hash, so picking
+// the same one twice doesn't duplicate it); the page shows them by file:// URL.
+const wallpaperDir = () => path.join(app.getPath('userData'), 'wallpapers');
+const WALLPAPER_EXT = /\.(png|jpe?g|webp|gif|avif|bmp)$/i;
+const wallpaperEntry = (f) => ({ id: `img:${f}`, url: require('node:url').pathToFileURL(path.join(wallpaperDir(), f)).href });
+
+ipcMain.handle('wallpaper:list', () => {
+  try {
+    return fs.readdirSync(wallpaperDir()).filter((f) => WALLPAPER_EXT.test(f))
+      .map((f) => ({ f, t: fs.statSync(path.join(wallpaperDir(), f)).mtimeMs }))
+      .sort((a, b) => a.t - b.t).map(({ f }) => wallpaperEntry(f));
+  } catch { return []; }
+});
+
+ipcMain.handle('wallpaper:pick', async (e) => {
+  const res = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+    title: 'Choose a wallpaper',
+    buttonLabel: 'Use as wallpaper',
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'bmp'] }],
+  });
+  const src = res.filePaths?.[0];
+  if (res.canceled || !src) return null;
+  if (!WALLPAPER_EXT.test(src)) throw new Error('Choose a picture (PNG, JPG, WebP, GIF or AVIF).');
+  if (fs.statSync(src).size > 30 * 1024 * 1024) throw new Error('That picture is over 30 MB. Choose a smaller one.');
+  const data = await fs.promises.readFile(src);
+  const name = `${require('node:crypto').createHash('sha256').update(data).digest('hex').slice(0, 20)}${path.extname(src).toLowerCase()}`;
+  await fs.promises.mkdir(wallpaperDir(), { recursive: true });
+  const dest = path.join(wallpaperDir(), name);
+  if (!fs.existsSync(dest)) await fs.promises.writeFile(dest, data);
+  return wallpaperEntry(name);
+});
+
+ipcMain.handle('wallpaper:remove', async (_e, id) => {
+  const name = path.basename(String(id || '').replace(/^img:/, ''));
+  if (!WALLPAPER_EXT.test(name)) return false;
+  await fs.promises.rm(path.join(wallpaperDir(), name), { force: true });
+  return true;
 });
 
 // ---------- Voice messages ----------

@@ -10,6 +10,7 @@ import {
 import {
   getLabels, roomLabels, createLabel, toggleLabel, getStarred, toggleStar, isMuted, setMuted,
 } from '../chatmeta.js';
+import { ChatWallpaperSection } from './Wallpaper.jsx';
 
 const BOT = /^@[a-z]+bot:/;
 const URL_RE = /https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"]/;
@@ -293,6 +294,7 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
             </div>
           </Section>
         )}
+        <ChatWallpaperSection client={client} room={room} />
         <Section title="Notes">
           <textarea className="ip-notes" value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveNote}
             placeholder="Private notes about this chat. Only you can see them." rows={4} />

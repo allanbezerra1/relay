@@ -25,6 +25,11 @@ contextBridge.exposeInMainWorld('relay', {
   setTheme: (theme) => ipcRenderer.send('app:setTheme', theme),
   version: () => ipcRenderer.invoke('app:version'),
   customSounds: () => ipcRenderer.invoke('app:customSounds'),
+  wallpaper: {
+    list: () => ipcRenderer.invoke('wallpaper:list'),
+    pick: () => ipcRenderer.invoke('wallpaper:pick'),
+    remove: (id) => ipcRenderer.invoke('wallpaper:remove', id),
+  },
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     check: () => ipcRenderer.invoke('update:check'),
