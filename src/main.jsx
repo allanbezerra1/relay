@@ -23,6 +23,7 @@ import './styles/imports.css';
 import './styles/ai.css';
 import './styles/translate.css';
 import './styles/triage.css';
+import './styles/ask.css';
 import { DialogHost } from './dialogs.jsx';
 import { ReminderHost } from './components/Reminders.jsx';
 import PrivacyLayer from './components/PrivacyLayer.jsx';

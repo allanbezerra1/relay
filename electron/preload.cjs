@@ -179,6 +179,22 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener('ai:chunk', fn);
     },
   },
+  // Ask Relay: the search index lives in the main process (electron/semantic.cjs).
+  ask: {
+    status: () => ipcRenderer.invoke('ask:status'),
+    rooms: () => ipcRenderer.invoke('ask:rooms'),
+    add: (batch) => ipcRenderer.invoke('ask:add', batch), // { roomId, room, messages: [{ id, ts, line }], newest }
+    embed: (opts) => ipcRenderer.invoke('ask:embed', opts), // { host, model }
+    search: (opts) => ipcRenderer.invoke('ask:search', opts), // { query, host, model, k }
+    models: (host) => ipcRenderer.invoke('ask:models', host),
+    stop: () => ipcRenderer.invoke('ask:stop'),
+    clear: () => ipcRenderer.invoke('ask:clear'),
+    onProgress: (cb) => {
+      const fn = (_e, s) => cb(s);
+      ipcRenderer.on('ask:progress', fn);
+      return () => ipcRenderer.removeListener('ask:progress', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);

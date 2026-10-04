@@ -471,7 +471,7 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
           {current === 'health' && <HealthPanel />}
           {current === 'backup' && <BackupPanel isLocal={isLocal} />}
           {current === 'imports' && <ImportSettings client={client} />}
-          {current === 'ai' && <AISettings />}
+          {current === 'ai' && <AISettings client={client} />}
           {current === 'advanced' && <Advanced isLocal={isLocal} onSignOut={onSignOut} />}
           {current === 'about' && <About />}
         </div>

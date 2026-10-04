@@ -8,6 +8,10 @@ import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../
 import { toggleLabel } from '../chatmeta.js';
 import { ask } from '../dialogs.jsx';
 import { combo } from '../platform.js';
+import { AskIcon } from './AskPanel.jsx';
+
+// Ask Relay's shortcut, as the keyboard shows it.
+const ASK_KEYS = window.relay?.platform === 'darwin' ? '⌘⇧A' : 'Ctrl+Shift+A';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -73,7 +77,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages, headerExtra, onSummarize,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages, headerExtra, onSummarize, onAsk,
   folderBar, topSection, menuExtras, emptyText, // folders, "Important", snooze (Organize.jsx)
   section, setSection, sectionCounts = {}, // "Main" / "Groups" tabs (null when off)
   triage = null, setTriage = null, triageCounts = { reply: 0, waiting: 0 },
@@ -229,6 +233,9 @@ export default function RoomList({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setQuery(''); e.currentTarget.blur(); setShowSearch(false); }
+              if (e.key === 'Enter' && onAsk && query.trim().length > 2 && (e.metaKey || e.ctrlKey || !rooms[0])) {
+                const q = query.trim(); setQuery(''); e.currentTarget.blur(); setShowSearch(false); onAsk(q); return;
+              }
               if (e.key === 'Enter' && rooms[0]) { onOpen(rooms[0].id); setQuery(''); }
             }}
             placeholder="Search chats"
@@ -238,6 +245,15 @@ export default function RoomList({
           <button className="search-msgs" onMouseDown={(e) => e.preventDefault()} onClick={() => onSearchMessages(query.trim())} title={`Search messages (${combo('Shift+F')})`}>
             <Ico d={ICONS.search} size={14} />
             <span>Search messages for “<b>{query.trim()}</b>”</span>
+          </button>
+        )}
+        {onAsk && (showSearch || query) && (query.trim().length > 2 || !query.trim()) && (
+          <button className="search-ask" onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { const q = query.trim(); setQuery(''); searchRef.current?.blur(); setShowSearch(false); onAsk(q); }}
+            title={`Ask Relay (${ASK_KEYS})`}>
+            <AskIcon size={15} />
+            {query.trim() ? <span>Ask Relay: “<b>{query.trim()}</b>”</span> : <span>Ask Relay about your chats</span>}
+            <kbd>{query.trim() ? (ASK_KEYS.startsWith('⌘') ? '⌘↵' : 'Ctrl+↵') : ASK_KEYS}</kbd>
           </button>
         )}
         <div className={`chips ${showFilters || filtersActive ? '' : 'collapsed'}`}>
