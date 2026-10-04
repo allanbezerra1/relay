@@ -9,6 +9,7 @@ import { NOTIFICATION_SOUNDS, notificationSound, uiSound } from '../sounds.js';
 import { player } from '../player.js';
 import VolumeSlider from './VolumeSlider.jsx';
 import { useUpdate } from '../update.js';
+import { notice } from '../dialogs.jsx';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
@@ -279,7 +280,7 @@ function Advanced({ isLocal, onSignOut }) {
 
   const restart = async (name) => {
     setBusy(name);
-    try { await local().restartBridge(name); } catch (err) { alert(cleanError(err)); }
+    try { await local().restartBridge(name); } catch (err) { notice(cleanError(err)); }
     setBusy(null);
     local().status().then(setStatus).catch(() => {});
   };
@@ -304,7 +305,7 @@ function Advanced({ isLocal, onSignOut }) {
               <span className="setting-text"><span className="setting-label">Refresh WhatsApp contact names and photos</span><span className="setting-hint">Re-reads names from your phone’s contacts. Takes a few minutes in the background.</span></span>
               <button className="ghost small" disabled={busy === 'contacts'} onClick={async () => {
                 setBusy('contacts');
-                try { await local().bridgeCommand('whatsapp', 'sync contacts-with-avatars'); } catch (err) { alert(cleanError(err)); }
+                try { await local().bridgeCommand('whatsapp', 'sync contacts-with-avatars'); } catch (err) { notice(cleanError(err)); }
                 setTimeout(() => setBusy(null), 3000);
               }}>{busy === 'contacts' ? 'Started ✓' : 'Refresh'}</button>
             </div>
