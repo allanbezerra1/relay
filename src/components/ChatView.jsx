@@ -6,6 +6,7 @@ import Composer from './Composer.jsx';
 import Lightbox, { roomGallery } from './Lightbox.jsx';
 import InfoPanel from './InfoPanel.jsx';
 import ForwardDialog, { forwardContent } from './ForwardDialog.jsx';
+import JumpContext from './JumpContext.jsx';
 import { isMuted, isStarred, toggleStar } from '../chatmeta.js';
 import { useClientTick } from '../hooks.js';
 import { uiSound, reactionSound } from '../sounds.js';
@@ -15,11 +16,12 @@ import { uploadAttachment } from '../media.js';
 import { ask, notice } from '../dialogs.jsx';
 import { ChatWallpaper } from './Wallpaper.jsx';
 import { burstReaction, useLiveArrivals } from '../fx.js';
+import { on } from '../bus.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
 
-export default function ChatView({ client, info, focused, actions, droppedFiles, onDroppedTaken }) {
+export default function ChatView({ client, info, focused, actions, droppedFiles, onDroppedTaken, jumpTarget }) {
   const { room } = info;
   const me = client.getUserId();
   const net = networkInfo(info.network);
@@ -68,14 +70,48 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const toggleInfo = () => setInfoOpen((v) => { try { localStorage.setItem('relay.infoOpen', v ? '0' : '1'); } catch {} return !v; });
 
   // Scroll to a message (e.g. from Starred) and flash it.
-  const jumpTo = (eventId) => {
+  const jumpTo = (eventId, quiet) => {
     const el = scrollRef.current?.querySelector(`[data-event-id="${CSS.escape(eventId)}"]`);
-    if (!el) { notice({ icon: 'info', title: 'Message not loaded', body: 'Scroll up to load older messages first.' }); return; }
+    if (!el) { if (!quiet) notice({ icon: 'info', title: 'Message not loaded', body: 'Scroll up to load older messages first.' }); return false; }
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     el.classList.remove('flash');
     void el.offsetWidth;
     el.classList.add('flash');
+    return true;
   };
+  // From message search: load a few pages of older history until the message is here and jump
+  // to it; further back (or behind a sync gap), show it with its surroundings instead.
+  const [jumpContext, setJumpContext] = useState(null); // { events, targetId }
+  useEffect(() => {
+    if (!jumpTarget || jumpTarget.roomId !== room.roomId) return undefined;
+    const id = jumpTarget.eventId;
+    let cancelled = false;
+    (async () => {
+      const live = () => room.getLiveTimeline().getEvents().some((e) => e.getId() === id);
+      const elsewhere = () => !live() && room.getUnfilteredTimelineSet().getTimelineForEvent(id);
+      for (let page = 0; page < 5 && !cancelled && !live() && !elsewhere(); page++) {
+        try { if (!(await client.paginateEventTimeline(room.getLiveTimeline(), { backwards: true, limit: 100 }))) break; } catch { break; }
+      }
+      // The timeline re-renders on the next frame(s); try for a moment.
+      for (let i = 0; live() && i < 20 && !cancelled; i++) {
+        if (jumpTo(id, true)) return;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      try {
+        const tl = await client.getEventTimeline(room.getUnfilteredTimelineSet(), id);
+        const evs = (tl?.getEvents() || []).filter(isDisplayable);
+        const at = evs.findIndex((e) => e.getId() === id);
+        if (cancelled) return;
+        if (at >= 0) setJumpContext({ targetId: id, events: evs.slice(Math.max(0, at - 8), at + 9) });
+        else showToast('Couldn’t find that message in the history');
+      } catch {
+        if (!cancelled) showToast('Couldn’t find that message in the history');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [jumpTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Command palette: "Show chat details".
+  useEffect(() => on('show-info', () => setInfoOpen(() => { try { localStorage.setItem('relay.infoOpen', '1'); } catch {} return true; })), []);
   const [dragging, setDragging] = useState(false);
   const [uploads, setUploads] = useState([]);
   const composerRef = useRef(null);
@@ -404,7 +440,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
       <ChatWallpaper client={client} room={room} />
       <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo} />
 
-      <div className={`timeline ${threadRoot ? 'behind-thread' : ''}`} ref={scrollRef} onScroll={onScroll}>
+      <div className={`timeline ${threadRoot || jumpContext ? 'behind-thread' : ''}`} ref={scrollRef} onScroll={onScroll}>
         <div className="timeline-inner">
           {atStart ? (
             <div className="timeline-start muted">
@@ -446,6 +482,10 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
             </div>
           </div>
         </div>
+      )}
+
+      {jumpContext && (
+        <JumpContext {...jumpContext} messageProps={messageProps} onClose={() => setJumpContext(null)} />
       )}
 
       {uploads.length > 0 && (

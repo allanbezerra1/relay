@@ -1,11 +1,16 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { MsgType } from 'matrix-js-sdk';
-import { effectiveContent, senderName, previewText, stripReplyFallback } from '../matrix.js';
+import { effectiveContent, senderName, previewText, stripReplyFallback, peopleCount } from '../matrix.js';
 import { usePrefs } from '../prefs.js';
 import EmojiPicker from './EmojiPicker.jsx';
 import { sendSticker } from '../stickers.js';
 import NetIcon from './NetIcon.jsx';
 import { uiSound } from '../sounds.js';
+import { useQuickReplyPopup } from './QuickReplies.jsx';
+import { SchedulePopover, ScheduledStrip } from './Scheduled.jsx';
+import { schedulingAvailable } from '../scheduled.js';
+import { combo } from '../platform.js';
+import { on } from '../bus.js';
 
 const drafts = new Map(); // roomId -> text, kept while the app is open
 
@@ -178,6 +183,33 @@ const Composer = forwardRef(function Composer(
     }
   };
 
+  // "/shortcut" → saved quick reply, with {name} filled from this chat (or the person you reply to).
+  const quick = useQuickReplyPopup({
+    client, text,
+    name: replyTo ? senderName(room, replyTo.getSender()) : peopleCount(room) <= 2 ? roomName : '',
+    onInsert: (value) => { update(value); requestAnimationFrame(() => { const el = input.current; el?.focus(); el?.setSelectionRange(value.length, value.length); }); },
+  });
+
+  // Schedule: right-click / long-press on send, Ctrl/⌘+Shift+Enter, or the command palette.
+  const [scheduling, setScheduling] = useState(false);
+  const canSchedule = schedulingAvailable() && !editing;
+  useEffect(() => (canSchedule ? on('schedule-open', () => setScheduling(true)) : undefined), [canSchedule]);
+  const longPress = useRef({ timer: 0, fired: false });
+  const pressStart = () => {
+    if (!canSchedule) return;
+    longPress.current.fired = false;
+    clearTimeout(longPress.current.timer);
+    longPress.current.timer = setTimeout(() => { longPress.current.fired = true; setScheduling(true); }, 550);
+  };
+  const pressEnd = () => clearTimeout(longPress.current.timer);
+  const scheduled = () => {
+    setScheduling(false);
+    setText('');
+    drafts.delete(room.roomId);
+    onSent();
+    input.current?.focus();
+  };
+
   const insert = (str) => {
     const el = input.current;
     const start = el?.selectionStart ?? text.length;
@@ -263,6 +295,12 @@ const Composer = forwardRef(function Composer(
   };
 
   const onKeyDown = (e) => {
+    if (quick.onKeyDown(e)) return;
+    if (e.key === 'Enter' && e.shiftKey && (e.ctrlKey || e.metaKey) && canSchedule) {
+      e.preventDefault();
+      setScheduling(true);
+      return;
+    }
     const sendCombo = enterToSend ? !e.shiftKey && !e.metaKey : e.metaKey || e.ctrlKey;
     if (e.key === 'Enter' && sendCombo && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -291,6 +329,7 @@ const Composer = forwardRef(function Composer(
 
   return (
     <div className="composer">
+      <ScheduledStrip roomId={room.roomId} />
       {contextEv && (
         <div className="composer-context">
           <div>
@@ -375,12 +414,24 @@ const Composer = forwardRef(function Composer(
             />
             <button className={`icon-in ${emoji ? 'on' : ''}`} onClick={() => setEmoji(!emoji)} title="Emoji"><Icon d={ICON.smile} /></button>
             {!hasText && !editing && <button className="icon-in" onClick={startVoice} title="Record a voice message"><Icon d={ICON.wave} /></button>}
+            {quick.element}
             {emoji && <EmojiPicker className="for-composer" onPick={insert} onClose={() => setEmoji(false)} stickers={{ client, onSend: sendStickerNow }} />}
           </div>
 
-          <button className={`round-btn send ${hasText || editing ? 'ready' : ''}`} onClick={send} disabled={!hasText && !editing} title={enterToSend ? 'Send (Enter)' : 'Send (⌘Enter)'}>
-            <Icon d={ICON.send} size={20} />
-          </button>
+          <div className="send-wrap">
+            <button className={`round-btn send ${hasText || editing ? 'ready' : ''}`}
+              onClick={() => { if (longPress.current.fired) { longPress.current.fired = false; return; } send(); }}
+              onContextMenu={canSchedule ? (e) => { e.preventDefault(); setScheduling(true); } : undefined}
+              onPointerDown={pressStart} onPointerUp={pressEnd} onPointerLeave={pressEnd}
+              disabled={!hasText && !editing && !canSchedule}
+              title={`${enterToSend ? 'Send (Enter)' : `Send (${combo('Enter')})`}${canSchedule ? ` · Right-click or hold to schedule (${combo('Shift+Enter')})` : ''}`}>
+              <Icon d={ICON.send} size={20} />
+            </button>
+            {scheduling && (
+              <SchedulePopover text={text.trim()} roomId={room.roomId} roomName={roomName}
+                onDone={scheduled} onClose={() => { setScheduling(false); input.current?.focus(); }} />
+            )}
+          </div>
         </div>
       )}
     </div>

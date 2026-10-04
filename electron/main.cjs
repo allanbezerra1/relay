@@ -8,6 +8,7 @@ const updater = require('./updater.cjs');
 require('./automations.cjs').init(); // automations: webhooks (auto:webhook)
 require('./smart.cjs').init(); // smart cards: addresses on the map (smart:geocode)
 const reminders = require('./reminders.cjs');
+const scheduled = require('./scheduled.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -589,6 +590,20 @@ app.whenReady().then(() => {
     },
   });
   updater.init((s) => send('update:state', s));
+  // Scheduled messages go out from here, window open or not, with the session the window signed in with.
+  scheduled.init({
+    mainWindow: () => win,
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
+    getSession: () => matrixSession || (matrixSession = readSession()),
+    onOpenRoom: (roomId) => {
+      if (!win) return;
+      if (win.isMinimized()) win.restore();
+      if (process.platform === 'darwin') app.show();
+      win.show();
+      win.focus();
+      win.webContents.send('notification:click', roomId);
+    },
+  });
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
     else { if (process.platform === 'darwin') app.show(); win?.show(); }

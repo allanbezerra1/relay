@@ -14,14 +14,18 @@ import AutomationsSettings from './AutomationsSettings.jsx';
 import PresetPicker from './PresetPicker.jsx';
 import { DefaultWallpaperPicker } from './Wallpaper.jsx';
 import { RemindersPane } from './Reminders.jsx';
+import { QuickRepliesPane } from './QuickReplies.jsx';
+import { ScheduledPane } from './Scheduled.jsx';
 
-const SECTIONS = [
+export const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
   { id: 'accounts', label: 'Accounts', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14Z', localOnly: true },
   { id: 'notifications', label: 'Notifications', icon: 'M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z' },
-  { id: 'reminders', label: 'Reminders', icon: 'M15 1H9v2h6V1Zm-4 13h2V8h-2v6Zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4a9 9 0 1 0 9 9c0-2.12-.74-4.07-1.97-5.61ZM12 20a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z' },
   { id: 'appearance', label: 'Appearance', icon: 'M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z' },
   { id: 'automations', label: 'Automations', icon: 'M7 2v11h3v9l7-12h-4l4-8H7Z' },
+  { id: 'quickreplies', label: 'Quick replies', icon: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm-2 12H6v-2h12v2Zm0-3H6V9h12v2Zm0-3H6V6h12v2Z' },
+  { id: 'scheduled', label: 'Scheduled', icon: 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6v-2H5V9h14v2h2V6a2 2 0 0 0-2-2Zm-1.5 9a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm1.6 6.4-2.1-1.3V15h1v2.5l1.6 1-.5.9Z' },
+  { id: 'reminders', label: 'Reminders', icon: 'M15 1H9v2h6V1Zm-4 13h2V8h-2v6Zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4a9 9 0 1 0 9 9c0-2.12-.74-4.07-1.97-5.61ZM12 20a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z' },
   { id: 'privacy', label: 'Privacy & security', icon: 'M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 10h6c-.5 4-3 7.4-6 8.4V12H6V6.3l6-2.2V12Z' },
   { id: 'advanced', label: 'Advanced', icon: 'M8.6 15.4 5.2 12l3.4-3.4L7.2 7.2 2.4 12l4.8 4.8 1.4-1.4Zm6.8 0L18.8 12l-3.4-3.4 1.4-1.4 4.8 4.8-4.8 4.8-1.4-1.4Z' },
   { id: 'about', label: 'About', icon: 'M11 7h2v2h-2V7Zm0 4h2v6h-2v-6Zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z' },
@@ -441,9 +445,11 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
           {current === 'notifications' && <Notifications />}
           {current === 'appearance' && <Appearance />}
           {current === 'automations' && <AutomationsSettings client={client} />}
+          {current === 'quickreplies' && <QuickRepliesPane client={client} />}
+          {current === 'scheduled' && <ScheduledPane />}
+          {current === 'reminders' && <RemindersPane />}
           {current === 'privacy' && <Privacy client={client} isLocal={isLocal} />}
           {current === 'advanced' && <Advanced isLocal={isLocal} onSignOut={onSignOut} />}
-          {current === 'reminders' && <RemindersPane />}
           {current === 'about' && <About />}
         </div>
       </div>

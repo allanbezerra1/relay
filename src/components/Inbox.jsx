@@ -10,6 +10,9 @@ import { isMuted, setMuted, getLabels, labelTag } from '../chatmeta.js';
 import RoomList from './RoomList.jsx';
 import ChatView from './ChatView.jsx';
 import QuickSwitcher from './QuickSwitcher.jsx';
+import MessageSearch from './MessageSearch.jsx';
+import { on } from '../bus.js';
+import { MOD } from '../platform.js';
 import Settings from './Settings.jsx';
 import Avatar from './Avatar.jsx';
 import Logo from './Logo.jsx';
@@ -153,6 +156,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [settings, setSettings] = useState(null); // null | section id
   const [newGroup, setNewGroup] = useState(false);
   const [inboxToast, setInboxToast] = useState(null);
+  const [msgSearch, setMsgSearch] = useState(null); // null | { query, roomId }
+  const [jump, setJump] = useState(null); // { roomId, eventId } from message search
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
   useEffect(() => {
@@ -303,6 +308,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     try { localStorage.setItem('relay.activeRoom', id || ''); } catch {}
   }, []);
 
+  // Requests from deep inside the tree (composer → "manage quick replies", Settings → a scheduled message's chat).
+  useEffect(() => on('open-settings', (section) => setSettings(section || 'general')), []);
+  useEffect(() => on('open-room', (id) => { setSettings(null); setQuery(''); openRoom(id); }), [openRoom]);
+
   // WhatsApp only sends "typing…" to online devices subscribed to the chat. While Relay is in
   // front, stay online and subscribed to the most recent WhatsApp chats so the list can show it.
   const recentWhatsApp = rooms.filter((r) => !r.archived && /^whatsapp/.test(r.network || '')).slice(0, 15).map((r) => r.id).join(',');
@@ -390,7 +399,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   useEffect(() => {
     const onKey = (e) => {
       const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setSwitcher((s) => !s); }
+      if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setMsgSearch(null); setSwitcher((s) => !s); }
+      else if (mod && e.key.toLowerCase() === 'f' && e.shiftKey) { e.preventDefault(); setSwitcher(false); setMsgSearch((s) => (s ? null : {})); }
       else if (mod && e.key.toLowerCase() === 'f' && !e.shiftKey) { e.preventDefault(); searchRef.current?.focus(); }
       else if (mod && e.key === ',') { e.preventDefault(); setSettings('general'); }
       else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -562,18 +572,19 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           emptyText={org.emptyText}
           section={sectioned && !query ? section : null} setSection={setSection}
           sectionCounts={{ main: unreadMain, groups: groupsUnread }}
+          onSearchMessages={(q) => setMsgSearch({ query: q })}
         />
       )}
 
       {active ? (
-        <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions}
+        <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions} jumpTarget={jump?.roomId === active.id ? jump : null}
           droppedFiles={droppedFiles?.roomId === active.id ? droppedFiles.files : null} onDroppedTaken={() => setDroppedFiles(null)} />
       ) : (
         <div className="empty-chat">
           <div className="drag-region" />
           <Logo size={72} />
           <h2>{myName !== 'You' ? `Hi, ${myName.split(' ')[0]}` : 'Welcome to Relay'}</h2>
-          <p className="muted">Pick a chat, or press <kbd>⌘</kbd><kbd>K</kbd> to jump to one.</p>
+          <p className="muted">Pick a chat, or press <kbd>{MOD}</kbd><kbd>K</kbd> to jump to one.</p>
           {rooms.length === 0 && syncing && (
             <p className="muted small">Importing your chats. The first sync can take a few minutes for big groups.</p>
           )}
@@ -586,7 +597,14 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       )}
 
       {switcher && (
-        <QuickSwitcher rooms={rooms} onClose={() => setSwitcher(false)} onPick={(id) => { setQuery(''); openRoom(id); setSwitcher(false); }} />
+        <QuickSwitcher client={client} rooms={rooms} active={active} actions={actions} view={view} isLocal={isLocal}
+          onClose={() => setSwitcher(false)} onPick={(id) => { setQuery(''); openRoom(id); setSwitcher(false); }}
+          onSettings={setSettings} onView={(v) => { setView(v); setFilter('all'); }}
+          onSearchMessages={(s) => { setSwitcher(false); setMsgSearch(s); }} />
+      )}
+      {msgSearch && (
+        <MessageSearch client={client} rooms={rooms} initial={msgSearch} onClose={() => setMsgSearch(null)}
+          onJump={(roomId, eventId) => { setQuery(''); openRoom(roomId); setJump({ roomId, eventId, at: Date.now() }); }} />
       )}
       {settings && (
         <Settings client={client} isLocal={isLocal} section={settings} onSection={setSettings}
