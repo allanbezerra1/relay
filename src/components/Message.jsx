@@ -11,6 +11,9 @@ import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
   senderName, previewText, formatBytes, memberAvatar, cleanName,
 } from '../matrix.js';
+import { useAiReadyQuiet } from '../ai.js';
+import { translatableBody, translateEvent } from '../translate.js';
+import { MessageTranslation, TRANSLATE_PATH } from './Translate.jsx';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
@@ -390,7 +393,7 @@ function Message({
   };
   const onBlankClick = (e) => {
     if (!canReply || e.defaultPrevented) return;
-    if (e.target.closest('.bubble, .msg-tools, .reactions, .msg-avatar, .msg-sender, .transcript, .tx-row, .menu, .emoji-picker, a, button')) return;
+    if (e.target.closest('.bubble, .msg-tools, .reactions, .msg-avatar, .msg-sender, .transcript, .tx-row, .tr-card, .menu, .emoji-picker, a, button')) return;
     window.getSelection()?.removeAllRanges(); // a double-click would select a word
     onReply(ev);
   };
@@ -410,6 +413,9 @@ function Message({
   const imageOverlay = ((isImage && !isSticker) || content.msgtype === MsgType.Video) && !hasCaption(content) && !replyId;
   const meta = <Meta time={time} mine={mine} receipt={failed ? null : receipt} edited={edited && !ev.isRedacted()} overlay={imageOverlay} starred={starred} />;
   const copyable = content.msgtype === MsgType.Text || content.msgtype === MsgType.Notice;
+  // What "Translate" works on: people's words only, never bridge notices or view once placeholders.
+  const aiReady = useAiReadyQuiet();
+  const trBody = aiReady ? translatableBody(ev) : '';
 
   // Media in this bubble (blob or http URL), for Open / Save.
   const mediaEl = () => bubbleRef.current?.querySelector('img, video, audio, a.file');
@@ -451,6 +457,7 @@ function Message({
       'separator',
       sel && { label: 'Copy selection', icon: <Svg d={I.copy} size={15} />, run: () => navigator.clipboard.writeText(sel) },
       copyable && { label: 'Copy text', icon: <Svg d={I.copy} size={15} />, run: () => navigator.clipboard.writeText(stripReplyFallback(content.body || '')) },
+      trBody && !ev.status && { label: 'Translate', icon: <Svg d={TRANSLATE_PATH} size={15} />, run: () => translateEvent(ev.getId(), trBody) },
       link && { label: 'Copy link', icon: <Svg d={I.copy} size={15} />, run: () => navigator.clipboard.writeText(link) },
       link && { label: 'Open link in browser', icon: <span>↗</span>, run: () => window.open(link, '_blank') },
       isImage && { label: 'Open image', icon: <span>🖼</span>, run: () => mediaEl()?.click() },
@@ -532,6 +539,7 @@ function Message({
             {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
           </button>
         )}
+        {(trBody || (mine && content['dev.relay.original'])) && !selecting && <MessageTranslation ev={ev} body={trBody} mine={mine} />}
         {isAudio && !ev.isRedacted() && <Transcribe client={client} ev={ev} content={content} mine={mine} />}
 
         {reactions.length > 0 && (

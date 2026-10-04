@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePrefs, setPref } from '../prefs.js';
 import { aiPrefs, aiAvailable, aiStatus, aiErrorText } from '../ai.js';
 import { Spark } from './SummaryCard.jsx';
+import { langName } from '../translate.js';
 
 // Same markup as Settings' own rows, so they look identical.
 function Toggle({ label, hint, checked, onChange, disabled }) {
@@ -25,6 +26,8 @@ const Group = ({ title, children }) => (
 );
 
 const THRESHOLDS = [5, 10, 15, 30, 50];
+// Languages to translate into ("" = the system language).
+const LANGUAGES = ['en', 'es', 'pt-BR', 'pt-PT', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'he', 'hi', 'ja', 'ko', 'zh-CN', 'zh-TW'];
 
 export default function AISettings() {
   const p = aiPrefs(usePrefs());
@@ -59,10 +62,10 @@ export default function AISettings() {
       <div className="ai-hero">
         <span className="ai-orb big"><Spark size={22} /></span>
         <div>
-          <b>Summaries from your local AI</b>
+          <b>Summaries and translations from your local AI</b>
           <p>
-            Relay can use <a href="https://lmstudio.ai" target="_blank" rel="noreferrer">LM Studio</a> to answer “What did I miss?” and
-            to put together a daily digest of your busiest groups. Messages go straight to LM Studio, on this computer or one you
+            Relay can use <a href="https://lmstudio.ai" target="_blank" rel="noreferrer">LM Studio</a> to answer “What did I miss?”,
+            to put together a daily digest of your busiest groups and to translate messages. Messages go straight to LM Studio, on this computer or one you
             choose on your network. Nothing is sent to the cloud.
           </p>
         </div>
@@ -127,6 +130,24 @@ export default function AISettings() {
         </div>
         <Toggle label="Daily digest" hint="A button in the chat list that summarizes, one by one, the groups with the most unread messages."
           checked={p.aiDigest} disabled={off} onChange={(v) => setPref('aiDigest', v)} />
+      </Group>
+
+      <Group title="Translation">
+        <Toggle label="Offer translations" hint="A “Translate” button under messages written in another language, and “Translate” and “Auto” at the top of the chat."
+          checked={p.aiTranslate} disabled={off} onChange={(v) => setPref('aiTranslate', v)} />
+        <div className={`setting ${off ? 'disabled' : ''}`}>
+          <span className="setting-text">
+            <span className="setting-label">Translate into</span>
+            <span className="setting-hint">
+              The language you read in{p.aiTranslateTo ? '' : <>: <b>{langName(navigator.language || 'en')}</b>, from your system</>}.
+              With “Auto” on in a chat, what you write there is sent in that chat’s language.
+            </span>
+          </span>
+          <select className="ai-select" value={p.aiTranslateTo} disabled={off} onChange={(e) => setPref('aiTranslateTo', e.target.value)}>
+            <option value="">System language</option>
+            {LANGUAGES.map((l) => <option key={l} value={l}>{langName(l)}</option>)}
+          </select>
+        </div>
       </Group>
     </>
   );

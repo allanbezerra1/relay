@@ -76,10 +76,11 @@ async function status(host) {
 // Defaults per kind of request; the renderer can still override them.
 const TASKS = {
   summary: { maxTokens: 900, temperature: 0.3 },
+  translate: { maxTokens: 900, temperature: 0.1 },
 };
 
 /**
- * Generic streaming chat completion.
+ * Generic streaming chat completion (summaries, translations).
  * `responseFormat` is passed through as OpenAI's `response_format` (LM Studio supports json_schema).
  */
 async function complete(sender, { id, host, model, messages, task = 'summary', maxTokens, temperature, responseFormat }) {
