@@ -20,6 +20,7 @@ import NewGroupDialog from './NewGroupDialog.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
 import { ask, notice } from '../dialogs.jsx';
+import { useOrganize } from './Organize.jsx';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -266,10 +267,13 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     });
   }, [rooms, query, filter, view, unreadOnly, labelFilter, typeFilter, activeId, matchesFilter]);
   const allLabels = getLabels(client);
+  // Folders, snooze and the "Important" group (Organize.jsx) narrow and arrange what's left.
+  const org = useOrganize({ client, rooms, profiles, labels: allLabels, activeId, openRoom: (id) => openRoom(id), view, setView, query });
+  const { list: visibleList, important } = org.arrange(query.trim() ? visible : visible.filter(org.filter));
 
   const active = rooms.find((r) => r.id === activeId) || null;
   const filterItem = railItems.find((i) => i.filter === filter);
-  const filterName = filter === 'all' ? 'Inbox' : filterItem ? (filterItem.isNetwork ? filterItem.name : `${networkInfo(filterItem.badgeNet).name} · ${filterItem.name}`) : 'Inbox';
+  const filterName = org.title || (filter === 'all' ? 'Inbox' : filterItem ? (filterItem.isNetwork ? filterItem.name : `${networkInfo(filterItem.badgeNet).name} · ${filterItem.name}`) : 'Inbox');
 
   const openRoom = useCallback((id) => {
     setActiveId(id);
@@ -491,7 +495,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       ) : (
         <RoomList
           client={client}
-          rooms={visible}
+          rooms={visibleList}
           activeId={activeId}
           onOpen={openRoom}
           query={query}
@@ -515,6 +519,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           onSettings={() => setSettings('general')}
           onDropFiles={dropOnRoom}
           onNewGroup={isLocal ? () => setNewGroup(true) : null}
+          folderBar={org.tabs}
+          topSection={org.important(important)}
+          menuExtras={org.menuExtras}
+          emptyText={org.emptyText}
         />
       )}
 
@@ -554,6 +562,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           }} />
       )}
       {inboxToast && <div className="toast">{inboxToast}</div>}
+      {org.overlays}
     </div>
   );
 }

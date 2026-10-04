@@ -14,6 +14,7 @@ export const DEFAULTS = {
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it
   autoUnarchive: true,
   showPreviews: true,     // last message under each chat in the list
+  importantSection: true, // "Important" group on top: unread one-to-one chats and mentions
   // Notifications
   notifications: true,
   notifPreview: true,
