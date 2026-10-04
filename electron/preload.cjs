@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('relay', {
   setTheme: (theme) => ipcRenderer.send('app:setTheme', theme),
   version: () => ipcRenderer.invoke('app:version'),
   customSounds: () => ipcRenderer.invoke('app:customSounds'),
+  auto: { webhook: (url, payload) => ipcRenderer.invoke('auto:webhook', url, payload) },
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     check: () => ipcRenderer.invoke('update:check'),

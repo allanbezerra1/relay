@@ -3,6 +3,7 @@ import App from './App.jsx';
 import './styles.css';
 import './styles/dialogs.css';
 import './styles/organize.css';
+import './styles/automations.css';
 import { DialogHost } from './dialogs.jsx';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';
