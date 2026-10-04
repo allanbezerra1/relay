@@ -21,6 +21,7 @@ export const DEFAULTS = {
   splitGroups: true,      // "Main" (one-to-one chats + ⭐ groups) and "Groups" tabs
   quietGroups: false,     // with the tabs on: groups not flagged ⭐ only notify when they mention you
   linkPreviews: true,     // rich previews under messages with a link
+  smartCards: true,       // Pix, codes, tracking, dates and addresses as cards under messages
   // Notifications
   notifications: true,
   notifPreview: true,

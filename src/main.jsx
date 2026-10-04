@@ -12,6 +12,7 @@ import './styles/wallpapers.css';
 import './styles/motion.css';
 import './styles/boot.css';
 import './styles/link-preview.css';
+import './styles/smart-cards.css';
 import { DialogHost } from './dialogs.jsx';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';

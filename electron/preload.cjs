@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('relay', {
     pick: () => ipcRenderer.invoke('wallpaper:pick'),
     remove: (id) => ipcRenderer.invoke('wallpaper:remove', id),
   },
+  smart: { geocode: (q) => ipcRenderer.invoke('smart:geocode', q) },
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     check: () => ipcRenderer.invoke('update:check'),
