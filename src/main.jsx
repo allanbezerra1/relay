@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
+import './styles/theme-glass.css';
+import './styles/presets.css';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';
 

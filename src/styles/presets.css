@@ -1,0 +1,322 @@
+/* Glass tokens the pickers below use, for when the Classic look is on (no glass theme loaded). */
+:root:not([data-style="glass"]) {
+  --glass-line: var(--line); --glass-line-2: var(--line);
+  --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent);
+  --grad: linear-gradient(135deg, var(--accent-2), var(--accent)); --glow: none;
+}
+
+/* ======================================================================
+   Theme presets (Settings → Aparência → Estilo): token overrides on top of
+   the Aurora glass theme, keyed by <html data-preset>. Aurora is the base
+   look and needs nothing here. OLED and Papel pin the theme (prefs.js),
+   Âmbar and Oceano have a dark and a light variant.
+   ====================================================================== */
+
+/* ---------- Âmbar: warm sunset ---------- */
+:root[data-preset="amber"] {
+  --aurora-1: #f59e0b;
+  --aurora-2: #e11d48;
+  --aurora-3: #9333ea;
+  --aurora-4: #fb7185;
+}
+:root[data-preset="amber"][data-theme="dark"] {
+  --base: #0e0806;
+  --glass: rgba(30, 18, 14, 0.6);
+  --glass-2: rgba(38, 24, 19, 0.78);
+  --glass-strong: rgba(36, 22, 18, 0.9);
+  --glass-line: rgba(255, 220, 190, 0.08);
+  --glass-line-2: rgba(255, 220, 190, 0.14);
+  --glass-hi: inset 0 1px 0 rgba(255, 225, 200, 0.06);
+  --tint: rgba(255, 220, 190, 0.05);
+  --tint-2: rgba(255, 220, 190, 0.09);
+  --bg: #140c09; --panel: #1b110d; --panel-2: #26180f;
+  --hover: rgba(255, 220, 190, 0.06); --active: rgba(255, 220, 190, 0.1); --line: rgba(255, 220, 190, 0.08);
+  --text: #fbf1e9; --text-2: #c9b0a0; --text-3: #8d7262;
+  --bubble-in: rgba(255, 228, 205, 0.08);
+  --aurora-opacity: 0.62;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-preset="amber"]:not([data-theme="light"]) {
+    --base: #0e0806;
+    --glass: rgba(30, 18, 14, 0.6);
+    --glass-2: rgba(38, 24, 19, 0.78);
+    --glass-strong: rgba(36, 22, 18, 0.9);
+    --glass-line: rgba(255, 220, 190, 0.08);
+    --glass-line-2: rgba(255, 220, 190, 0.14);
+    --glass-hi: inset 0 1px 0 rgba(255, 225, 200, 0.06);
+    --tint: rgba(255, 220, 190, 0.05);
+    --tint-2: rgba(255, 220, 190, 0.09);
+    --bg: #140c09; --panel: #1b110d; --panel-2: #26180f;
+    --hover: rgba(255, 220, 190, 0.06); --active: rgba(255, 220, 190, 0.1); --line: rgba(255, 220, 190, 0.08);
+    --text: #fbf1e9; --text-2: #c9b0a0; --text-3: #8d7262;
+    --bubble-in: rgba(255, 228, 205, 0.08);
+    --aurora-opacity: 0.62;
+  }
+}
+:root[data-preset="amber"][data-theme="light"] {
+  --base: #fbefe3;
+  --glass: rgba(255, 250, 245, 0.66);
+  --glass-2: rgba(255, 249, 243, 0.8);
+  --glass-strong: rgba(255, 251, 247, 0.9);
+  --glass-line: rgba(110, 50, 20, 0.08);
+  --glass-line-2: rgba(110, 50, 20, 0.13);
+  --tint: rgba(110, 50, 20, 0.045);
+  --tint-2: rgba(110, 50, 20, 0.075);
+  --card-shadow: 0 24px 60px -28px rgba(140, 60, 30, 0.35), 0 2px 6px rgba(140, 60, 30, 0.06);
+  --pop-shadow: 0 30px 80px -24px rgba(140, 60, 30, 0.4), 0 6px 18px rgba(140, 60, 30, 0.1);
+  --bg: #fdf6ef; --panel: #fbf1e7; --panel-2: #f5e6d8;
+  --hover: rgba(110, 50, 20, 0.05); --active: rgba(110, 50, 20, 0.08); --line: rgba(110, 50, 20, 0.09);
+  --text: #2b1810; --text-2: #6e5244; --text-3: #a2887a;
+  --bubble-in: rgba(255, 252, 248, 0.94);
+  --aurora-opacity: 0.42;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-preset="amber"]:not([data-theme="dark"]) {
+    --base: #fbefe3;
+    --glass: rgba(255, 250, 245, 0.66);
+    --glass-2: rgba(255, 249, 243, 0.8);
+    --glass-strong: rgba(255, 251, 247, 0.9);
+    --glass-line: rgba(110, 50, 20, 0.08);
+    --glass-line-2: rgba(110, 50, 20, 0.13);
+    --tint: rgba(110, 50, 20, 0.045);
+    --tint-2: rgba(110, 50, 20, 0.075);
+    --card-shadow: 0 24px 60px -28px rgba(140, 60, 30, 0.35), 0 2px 6px rgba(140, 60, 30, 0.06);
+    --pop-shadow: 0 30px 80px -24px rgba(140, 60, 30, 0.4), 0 6px 18px rgba(140, 60, 30, 0.1);
+    --bg: #fdf6ef; --panel: #fbf1e7; --panel-2: #f5e6d8;
+    --hover: rgba(110, 50, 20, 0.05); --active: rgba(110, 50, 20, 0.08); --line: rgba(110, 50, 20, 0.09);
+    --text: #2b1810; --text-2: #6e5244; --text-3: #a2887a;
+    --bubble-in: rgba(255, 252, 248, 0.94);
+    --aurora-opacity: 0.42;
+  }
+}
+
+/* ---------- Oceano: deep teal, cyan and indigo ---------- */
+:root[data-preset="ocean"] {
+  --aurora-1: #06b6d4;
+  --aurora-2: #0d9488;
+  --aurora-3: #4f46e5;
+  --aurora-4: #22d3ee;
+}
+:root[data-preset="ocean"][data-theme="dark"] {
+  --base: #020c14;
+  --glass: rgba(6, 22, 34, 0.6);
+  --glass-2: rgba(9, 29, 44, 0.78);
+  --glass-strong: rgba(8, 27, 41, 0.9);
+  --glass-line: rgba(160, 230, 255, 0.08);
+  --glass-line-2: rgba(160, 230, 255, 0.14);
+  --glass-hi: inset 0 1px 0 rgba(180, 240, 255, 0.06);
+  --tint: rgba(160, 230, 255, 0.05);
+  --tint-2: rgba(160, 230, 255, 0.09);
+  --bg: #04121c; --panel: #071823; --panel-2: #0c2231;
+  --hover: rgba(160, 230, 255, 0.06); --active: rgba(160, 230, 255, 0.1); --line: rgba(160, 230, 255, 0.08);
+  --text: #e8f7fc; --text-2: #96b9c8; --text-3: #5d7f8f;
+  --bubble-in: rgba(190, 240, 255, 0.075);
+  --aurora-opacity: 0.66;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-preset="ocean"]:not([data-theme="light"]) {
+    --base: #020c14;
+    --glass: rgba(6, 22, 34, 0.6);
+    --glass-2: rgba(9, 29, 44, 0.78);
+    --glass-strong: rgba(8, 27, 41, 0.9);
+    --glass-line: rgba(160, 230, 255, 0.08);
+    --glass-line-2: rgba(160, 230, 255, 0.14);
+    --glass-hi: inset 0 1px 0 rgba(180, 240, 255, 0.06);
+    --tint: rgba(160, 230, 255, 0.05);
+    --tint-2: rgba(160, 230, 255, 0.09);
+    --bg: #04121c; --panel: #071823; --panel-2: #0c2231;
+    --hover: rgba(160, 230, 255, 0.06); --active: rgba(160, 230, 255, 0.1); --line: rgba(160, 230, 255, 0.08);
+    --text: #e8f7fc; --text-2: #96b9c8; --text-3: #5d7f8f;
+    --bubble-in: rgba(190, 240, 255, 0.075);
+    --aurora-opacity: 0.66;
+  }
+}
+:root[data-preset="ocean"][data-theme="light"] {
+  --base: #e3f1f5;
+  --glass: rgba(250, 254, 255, 0.66);
+  --glass-2: rgba(248, 253, 255, 0.8);
+  --glass-strong: rgba(250, 254, 255, 0.9);
+  --glass-line: rgba(10, 60, 80, 0.08);
+  --glass-line-2: rgba(10, 60, 80, 0.13);
+  --tint: rgba(10, 60, 80, 0.045);
+  --tint-2: rgba(10, 60, 80, 0.075);
+  --card-shadow: 0 24px 60px -28px rgba(20, 80, 110, 0.35), 0 2px 6px rgba(20, 80, 110, 0.06);
+  --pop-shadow: 0 30px 80px -24px rgba(20, 80, 110, 0.4), 0 6px 18px rgba(20, 80, 110, 0.1);
+  --bg: #f3fafc; --panel: #ecf6f9; --panel-2: #ddeef3;
+  --hover: rgba(10, 60, 80, 0.05); --active: rgba(10, 60, 80, 0.08); --line: rgba(10, 60, 80, 0.09);
+  --text: #0b2430; --text-2: #48656f; --text-3: #82a0aa;
+  --bubble-in: rgba(255, 255, 255, 0.94);
+  --aurora-opacity: 0.4;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-preset="ocean"]:not([data-theme="dark"]) {
+    --base: #e3f1f5;
+    --glass: rgba(250, 254, 255, 0.66);
+    --glass-2: rgba(248, 253, 255, 0.8);
+    --glass-strong: rgba(250, 254, 255, 0.9);
+    --glass-line: rgba(10, 60, 80, 0.08);
+    --glass-line-2: rgba(10, 60, 80, 0.13);
+    --tint: rgba(10, 60, 80, 0.045);
+    --tint-2: rgba(10, 60, 80, 0.075);
+    --card-shadow: 0 24px 60px -28px rgba(20, 80, 110, 0.35), 0 2px 6px rgba(20, 80, 110, 0.06);
+    --pop-shadow: 0 30px 80px -24px rgba(20, 80, 110, 0.4), 0 6px 18px rgba(20, 80, 110, 0.1);
+    --bg: #f3fafc; --panel: #ecf6f9; --panel-2: #ddeef3;
+    --hover: rgba(10, 60, 80, 0.05); --active: rgba(10, 60, 80, 0.08); --line: rgba(10, 60, 80, 0.09);
+    --text: #0b2430; --text-2: #48656f; --text-3: #82a0aa;
+    --bubble-in: rgba(255, 255, 255, 0.94);
+    --aurora-opacity: 0.4;
+  }
+}
+
+/* Âmbar and Oceano: their own palette for the second aurora layer too (Aurora uses the accent). */
+:root[data-preset="amber"] body::after,
+:root[data-preset="ocean"] body::after {
+  background:
+    radial-gradient(30vmax 22vmax at 35% 75%, color-mix(in srgb, var(--aurora-4) 40%, transparent), transparent 70%),
+    radial-gradient(26vmax 20vmax at 55% 35%, color-mix(in srgb, var(--aurora-2) 24%, transparent), transparent 70%);
+}
+
+/* ---------- OLED: pure black, no glow, crisp hairlines ---------- */
+:root[data-preset="oled"][data-theme] {
+  --base: #000;
+  --glass: #000;
+  --glass-2: #050505;
+  --glass-strong: #0b0b0c;
+  --glass-line: rgba(255, 255, 255, 0.13);
+  --glass-line-2: rgba(255, 255, 255, 0.2);
+  --glass-hi: inset 0 0 0 0 transparent;
+  --tint: rgba(255, 255, 255, 0.06);
+  --tint-2: rgba(255, 255, 255, 0.1);
+  --card-shadow: none;
+  --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 24px 60px rgba(0, 0, 0, 0.9);
+  --glow: none;
+  --aurora-opacity: 0;
+  --bg: #000; --panel: #000; --panel-2: #0d0d0e;
+  --hover: rgba(255, 255, 255, 0.07); --active: rgba(255, 255, 255, 0.12); --line: rgba(255, 255, 255, 0.13);
+  --text: #fff; --text-2: #b4b4ba; --text-3: #7c7c84;
+  --bubble-in: #151517;
+  --accent-soft: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+:root[data-preset="oled"] body::before, :root[data-preset="oled"] body::after { display: none; }
+:root[data-preset="oled"] .chat, :root[data-preset="oled"] .empty-chat,
+:root[data-preset="oled"] .info-panel, :root[data-preset="oled"] .chat:has(.info-panel) .chat-main,
+:root[data-preset="oled"] .menu, :root[data-preset="oled"] .dialog, :root[data-preset="oled"] .settings,
+:root[data-preset="oled"] .emoji-picker, :root[data-preset="oled"] .switcher {
+  backdrop-filter: none !important;
+}
+:root[data-preset="oled"] .chat:has(.info-panel) { border: 0; }
+:root[data-preset="oled"] .msg.theirs .bubble { box-shadow: none; border-color: rgba(255, 255, 255, 0.08); }
+:root[data-preset="oled"] .msg.mine .bubble { box-shadow: none; }
+:root[data-preset="oled"] .room.active {
+  background: color-mix(in srgb, var(--accent) 20%, #000) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+:root[data-preset="oled"] .chips button.on,
+:root[data-preset="oled"] .settings-nav button.on { box-shadow: none; }
+:root[data-preset="oled"] .overlay { background: rgba(0, 0, 0, 0.72) !important; }
+:root[data-preset="oled"] .float-name { box-shadow: none !important; }
+:root[data-preset="oled"] .room > .avatar-wrap > .avatar { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); }
+
+/* ---------- Papel: warm cream paper, ink text, soft grain ---------- */
+:root[data-preset="paper"][data-theme] {
+  --aurora-1: #e9b872;
+  --aurora-2: #c9a27a;
+  --aurora-3: #d99a8b;
+  --base: #efe8db;
+  --glass: rgba(252, 249, 242, 0.84);
+  --glass-2: rgba(250, 246, 237, 0.9);
+  --glass-strong: rgba(253, 251, 246, 0.95);
+  --glass-line: rgba(70, 50, 20, 0.11);
+  --glass-line-2: rgba(70, 50, 20, 0.17);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --tint: rgba(70, 50, 20, 0.045);
+  --tint-2: rgba(70, 50, 20, 0.08);
+  --card-shadow: 0 1px 0 rgba(70, 50, 20, 0.06), 0 18px 40px -26px rgba(90, 60, 20, 0.32);
+  --pop-shadow: 0 1px 0 rgba(70, 50, 20, 0.08), 0 24px 60px -24px rgba(90, 60, 20, 0.38);
+  --glow: 0 6px 18px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+  --aurora-opacity: 0.22;
+  --bg: #fbf8f1; --panel: #f6f1e6; --panel-2: #ece4d4;
+  --hover: rgba(70, 50, 20, 0.05); --active: rgba(70, 50, 20, 0.085); --line: rgba(70, 50, 20, 0.1);
+  --text: #221c15; --text-2: #5f5446; --text-3: #988b7a;
+  --bubble-in: #fffdf8;
+  --accent-soft: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+/* The second aurora layer becomes paper grain. */
+:root[data-preset="paper"] body::after {
+  inset: 0; opacity: 0.5; animation: none; transform: none; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .16 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-preset="paper"] .chat, :root[data-preset="paper"] .empty-chat,
+:root[data-preset="paper"] .chat:has(.info-panel) .chat-main, :root[data-preset="paper"] .info-panel {
+  backdrop-filter: blur(8px) saturate(110%);
+}
+:root[data-preset="paper"] .sidebar-title h2,
+:root[data-preset="paper"] .pane-title,
+:root[data-preset="paper"] .empty-chat h2,
+:root[data-preset="paper"] .ip-hero h2 {
+  font-family: 'Iowan Old Style', 'Charter', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-weight: 700; letter-spacing: -0.01em;
+}
+:root[data-preset="paper"] .msg.theirs .bubble { box-shadow: 0 1px 0 rgba(70, 50, 20, 0.08), 0 6px 14px -12px rgba(90, 60, 20, 0.5); }
+:root[data-preset="paper"] .msg.mine .bubble { box-shadow: 0 8px 18px -14px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+:root[data-preset="paper"] .overlay { background: rgba(120, 100, 70, 0.22) !important; }
+:root[data-preset="paper"] ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* ---------- Switching: circular reveal (View Transitions) or a crossfade ---------- */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+html.appearance-fade, html.appearance-fade *,
+html.appearance-fade *::before, html.appearance-fade *::after {
+  transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease, fill 0.45s ease !important;
+}
+
+/* ---------- The preset picker in Settings ---------- */
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 14px 0 6px; }
+.preset-card {
+  display: flex; flex-direction: column; gap: 9px; padding: 0; border: 0; background: none; text-align: left;
+  color: var(--text-2); font: inherit; cursor: pointer;
+}
+.preset-prev {
+  position: relative; display: block; height: 104px; border-radius: 16px; overflow: hidden; isolation: isolate;
+  background: var(--p-base);
+  box-shadow: 0 0 0 1px var(--glass-line-2), 0 12px 28px -18px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 0.2s, transform 0.25s cubic-bezier(.2, 1.3, .4, 1);
+}
+.preset-card:hover .preset-prev { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--glass-line-2), 0 18px 34px -18px rgba(0, 0, 0, 0.6); }
+.preset-card.on .preset-prev { box-shadow: 0 0 0 2px var(--accent-2), 0 0 0 5px var(--accent-soft), 0 16px 34px -16px var(--accent); }
+.preset-prev .pp-glow {
+  position: absolute; inset: -30%; z-index: -1; opacity: var(--p-glow, 0.8);
+  background:
+    radial-gradient(40% 45% at 18% 25%, var(--p-a1), transparent 70%),
+    radial-gradient(38% 40% at 88% 18%, var(--p-a3), transparent 70%),
+    radial-gradient(45% 45% at 70% 95%, var(--p-a2), transparent 70%);
+  filter: blur(6px); animation: pp-drift 9s ease-in-out infinite alternate;
+}
+@keyframes pp-drift { to { transform: translate(6%, 4%) rotate(8deg); } }
+.preset-prev .pp-side {
+  position: absolute; left: 8px; top: 9px; bottom: 9px; width: 30%; border-radius: 9px;
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 7px;
+}
+.preset-prev .pp-side i { height: 7px; border-radius: 4px; background: var(--p-line); }
+.preset-prev .pp-side i:first-child { width: 60%; background: var(--p-text); opacity: 0.55; }
+.preset-prev .pp-side i.on { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.preset-prev .pp-chat {
+  position: absolute; right: 8px; top: 9px; bottom: 9px; left: calc(30% + 14px); border-radius: 10px;
+  background: var(--p-glass); border: 1px solid var(--p-line); backdrop-filter: blur(8px);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 8px;
+}
+.preset-prev .pp-chat b { display: block; height: 12px; border-radius: 7px 7px 7px 3px; width: 62%; background: var(--p-in); border: 1px solid var(--p-line); }
+.preset-prev .pp-chat b.me { align-self: flex-end; width: 48%; border: 0; border-radius: 7px 7px 3px 7px; background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
+.preset-prev .pp-chat b.short { width: 38%; }
+.preset-name { display: flex; align-items: center; gap: 6px; padding: 0 3px; font-size: 13px; font-weight: 650; color: var(--text); }
+.preset-name small { font-size: 10.5px; font-weight: 650; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-left: auto; }
+.preset-hint { padding: 0 3px; margin-top: -6px; font-size: 11.5px; color: var(--text-3); line-height: 1.35; }
+.preset-card.on .preset-name::before {
+  content: ''; width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  background: var(--grad) center / 100% no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 15-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8l-9 9Z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 15-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8l-9 9Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.themes.locked { opacity: 0.5; pointer-events: none; }
+.theme-lock-note { font-size: 12px; color: var(--text-3); margin: 12px 0 0 6px; }

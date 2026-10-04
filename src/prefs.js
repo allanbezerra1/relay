@@ -6,6 +6,7 @@ const KEY = 'relay.prefs';
 export const DEFAULTS = {
   // Appearance
   theme: 'system',        // system | dark | light
+  preset: 'classic',      // look, see PRESETS in presets.js (classic = flat, others = glass)
   accent: 'blue',         // see ACCENTS
   density: 'comfortable', // comfortable | compact
   textSize: 'md',         // sm | md | lg
@@ -63,15 +64,21 @@ export function usePrefs() {
   return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, getPrefs);
 }
 
+// Looks that only exist in one mode (OLED is black, Paper is paper) pin the theme.
+const PRESET_MODE = { oled: 'dark', paper: 'light' };
+
 export function applyAppearance() {
   const root = document.documentElement;
-  if (prefs.theme === 'system') delete root.dataset.theme;
-  else root.dataset.theme = prefs.theme;
+  const theme = PRESET_MODE[prefs.preset] || prefs.theme;
+  if (theme === 'system') delete root.dataset.theme;
+  else root.dataset.theme = theme;
+  root.dataset.preset = prefs.preset || 'classic';
+  root.dataset.style = !prefs.preset || prefs.preset === 'classic' ? 'classic' : 'glass';
   root.dataset.density = prefs.density;
   root.dataset.text = prefs.textSize;
   const acc = ACCENTS[prefs.accent] || ACCENTS.violet;
   root.style.setProperty('--accent', acc.a);
   root.style.setProperty('--accent-2', acc.b);
   root.style.setProperty('--bubble-out', acc.a);
-  window.relay?.setTheme?.(prefs.theme);
+  window.relay?.setTheme?.(theme);
 }
