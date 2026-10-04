@@ -9,6 +9,7 @@ export const DEFAULTS = {
   accent: 'blue',         // see ACCENTS
   density: 'comfortable', // comfortable | compact
   textSize: 'md',         // sm | md | lg
+  motion: true,           // micro-animations (also off when the OS asks for reduced motion)
   // Chats
   enterToSend: true,
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it
@@ -67,6 +68,7 @@ export function applyAppearance() {
   const root = document.documentElement;
   if (prefs.theme === 'system') delete root.dataset.theme;
   else root.dataset.theme = prefs.theme;
+  root.dataset.motion = prefs.motion === false ? 'off' : 'on';
   root.dataset.density = prefs.density;
   root.dataset.text = prefs.textSize;
   const acc = ACCENTS[prefs.accent] || ACCENTS.violet;

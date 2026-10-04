@@ -204,6 +204,10 @@ function Appearance() {
         <Choice label="Chat list density" value={p.density} onChange={(v) => setPref('density', v)} options={[['comfortable', 'Comfortable'], ['compact', 'Compact']]} />
         <Choice label="Text size" value={p.textSize} onChange={(v) => setPref('textSize', v)} options={[['sm', 'Small'], ['md', 'Default'], ['lg', 'Large']]} />
       </Group>
+      <Group title="Details">
+        <Toggle label="Animations" hint="Reactions, new messages and switching chats move smoothly. If your system asks for reduced motion, they stay off."
+          checked={p.motion !== false} onChange={(v) => setPref('motion', v)} />
+      </Group>
     </>
   );
 }

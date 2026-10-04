@@ -12,6 +12,7 @@ import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
 import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
+import { burstReaction, useLiveArrivals } from '../fx.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -23,6 +24,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const isGroup = peopleCount(room) > 2;
 
   const scrollRef = useRef(null);
+  useLiveArrivals(scrollRef, room.roomId);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [atStart, setAtStart] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
@@ -224,6 +226,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     const mine = reactionsFor(room, ev).find((r) => r.key === key)?.mine;
     if (mine) return client.redactEvent(room.roomId, mine.getId());
     uiSound(reactionSound(key));
+    burstReaction(ev.getId(), key);
     return client.sendEvent(room.roomId, 'm.reaction', {
       'm.relates_to': { rel_type: 'm.annotation', event_id: ev.getId(), key },
     });
