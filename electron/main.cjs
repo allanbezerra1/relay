@@ -11,6 +11,7 @@ const reminders = require('./reminders.cjs');
 const scheduled = require('./scheduled.cjs');
 const applock = require('./applock.cjs'); // "Lock Relay with a password"
 const reliability = require('./reliability.cjs');
+require('./imports.cjs').init(); // old WhatsApp history from an iPhone backup or an exported .zip (import:* IPC)
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');

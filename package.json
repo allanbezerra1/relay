@@ -38,6 +38,10 @@
       {
         "from": "resources/whatsapp-sync-login.patch",
         "to": "whatsapp-sync-login.patch"
+      },
+      {
+        "from": "resources/wa_import.py",
+        "to": "wa_import.py"
       }
     ]
   },

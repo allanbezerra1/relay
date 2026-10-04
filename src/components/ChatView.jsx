@@ -7,6 +7,7 @@ import Lightbox, { roomGallery } from './Lightbox.jsx';
 import InfoPanel from './InfoPanel.jsx';
 import ForwardDialog, { forwardContent } from './ForwardDialog.jsx';
 import JumpContext from './JumpContext.jsx';
+import ImportedHistory from './ImportedHistory.jsx';
 import { isMuted, isStarred, toggleStar } from '../chatmeta.js';
 import { useClientTick } from '../hooks.js';
 import { uiSound, reactionSound } from '../sounds.js';
@@ -449,6 +450,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
               {room.hasEncryptionStateEvent() && <div className="small">🔒 Messages are end-to-end encrypted</div>}
             </div>
           ) : loadingOlder ? <div className="timeline-loading"><div className="spinner small" /></div> : <div className="timeline-pad" />}
+          {window.relay.imports && <ImportedHistory room={room} group={info.group} scrollRef={scrollRef} cutoff={events[0]?.getTs()} />}
           {rows}
           {recording.length > 0 && (
             <div className="typing recording">
