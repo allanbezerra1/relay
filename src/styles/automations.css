@@ -1,0 +1,103 @@
+/* ======================================================================
+   Settings → Automations (src/components/AutomationsSettings.jsx)
+   ====================================================================== */
+.au-hero {
+  display: flex; gap: 14px; align-items: center; padding: 16px; margin-bottom: 18px; border-radius: 18px;
+  background: radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, #f59e0b 18%, transparent), transparent 60%), color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 22%, transparent);
+}
+.au-hero b { font-size: 15px; }
+.au-hero p { margin: 3px 0 0; font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.au-orb {
+  width: 46px; height: 46px; flex-shrink: 0; border-radius: 15px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #fbbf24, #f97316); box-shadow: 0 10px 24px -8px rgba(249, 115, 22, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.au-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.au-rule {
+  display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 16px; border-radius: 16px;
+  background: color-mix(in srgb, var(--text) 5%, transparent); border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
+  transition: opacity 0.2s, border-color 0.15s;
+}
+.au-rule:hover { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.au-rule.off { opacity: 0.55; }
+.au-rule-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.au-rule-main b { font-size: 14px; }
+.au-when { font-size: 12.5px; color: var(--text-2); }
+.au-then { font-size: 12.5px; font-weight: 600; color: var(--accent-2); }
+.au-rule-main small { font-size: 11px; color: var(--text-2); opacity: 0.8; margin-top: 2px; }
+.au-tools { display: flex; align-items: center; gap: 2px; margin-right: 6px; }
+.au-rule .au-icon {
+  width: 34px; height: 34px; padding: 0; margin: 0; border: 0; border-radius: 10px; box-shadow: none;
+  display: grid; place-items: center; background: transparent; color: var(--text-2); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.au-rule .au-icon svg { display: block; }
+.au-rule .au-icon:hover { background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); }
+.au-rule .au-icon.au-del:hover { background: color-mix(in srgb, #f43f5e 14%, transparent); color: #fb7185; }
+.au-rule .switch { flex-shrink: 0; }
+
+.au-new {
+  width: 100%; height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--accent-2); font: inherit; font-weight: 650;
+}
+.au-new:hover { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.au-sub { margin: 22px 0 10px; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-2); }
+.au-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.au-templates button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; text-align: left; cursor: pointer;
+  border-radius: 16px; border: 1px solid color-mix(in srgb, var(--text) 9%, transparent); background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text); font: inherit; transition: transform 0.18s cubic-bezier(.2, 1.3, .4, 1), border-color 0.15s;
+}
+.au-templates button:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.au-emoji { font-size: 22px; margin-bottom: 2px; }
+.au-templates b { font-size: 13.5px; }
+.au-templates small { font-size: 12px; color: var(--text-2); line-height: 1.4; }
+
+/* Editor */
+.au-editor { display: flex; flex-direction: column; gap: 14px; }
+.au-input {
+  width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 11px; font: inherit; font-size: 13.5px; color: var(--text);
+  background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid color-mix(in srgb, var(--text) 11%, transparent); outline: none;
+}
+.au-input:focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+textarea.au-input { resize: vertical; }
+select.au-input option { background: var(--panel, #12141f); }
+.au-name { font-size: 16px; font-weight: 650; padding: 11px 14px; }
+.au-block { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+.au-block-title { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 14px; }
+.au-step { padding: 3px 9px; border-radius: 8px; font-size: 11px; letter-spacing: 0.06em; color: #fff; background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
+.au-step.then { background: linear-gradient(135deg, #fbbf24, #f97316); }
+.au-field { display: flex; flex-direction: column; gap: 6px; }
+.au-field > span { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.au-inline { display: flex; gap: 8px; }
+.au-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; cursor: pointer; }
+.au-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.au-note { margin: -4px 0 0; font-size: 12px; color: #fbbf24; }
+.au-test { font-size: 12px; color: #f87171; }
+.au-test.ok { color: #4ade80; }
+.au-nets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.au-nets button {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12.5px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); background: none; color: var(--text-2);
+}
+.au-nets button.on { background: var(--accent-soft); border-color: transparent; color: var(--text); font-weight: 600; }
+.au-rooms { display: flex; flex-direction: column; gap: 8px; }
+.au-picked { display: flex; flex-wrap: wrap; gap: 6px; }
+.au-picked button { padding: 4px 10px; border-radius: 999px; border: 0; cursor: pointer; font: inherit; font-size: 12px; background: var(--accent-soft); color: var(--text); }
+.au-room-list { max-height: 210px; overflow-y: auto; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--text) 9%, transparent); padding: 4px; }
+.au-room-list label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.au-room-list label:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.au-room-list label.on { background: var(--accent-soft); }
+.au-room-list input { accent-color: var(--accent); }
+.au-room-list span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.au-room-list small { font-size: 11px; color: var(--text-2); }
+.au-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.au-btn {
+  height: 38px; padding: 0 16px; border-radius: 12px; border: 0; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 650;
+  background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text);
+}
+.au-btn:disabled { opacity: 0.45; cursor: default; }
+.au-btn.au-save { color: #fff; background: linear-gradient(135deg, var(--accent-2), var(--accent)); box-shadow: 0 8px 22px -10px var(--accent); }
+.au-btn.ghost { background: none; }

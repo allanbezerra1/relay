@@ -21,6 +21,7 @@ import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
 import { ask, notice } from '../dialogs.jsx';
 import { useOrganize } from './Organize.jsx';
+import { runAutomations } from '../automations.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -314,6 +315,13 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       await client.decryptEventIfNeeded(ev);
       if (!isDisplayable(ev)) return;
 
+      // Automations (Settings → Automations) run first: they can silence a message, or make it
+      // ring even in a muted or archived chat.
+      const auto = await runAutomations(client, room, ev).catch(() => ({ urgent: false, silent: false }));
+      if (auto.silent) return;
+      const { focused: f0, activeId: a0 } = stateRef.current;
+      if (auto.urgent && !(f0 && a0 === room.roomId)) { await showNotification(room, ev, { urgent: true }); return; }
+
       // Muted chats (e.g. WhatsApp status) stay quiet and stay archived.
       const actions = client.getPushActionsForEvent(ev);
       if (!actions?.notify) return;
@@ -329,16 +337,18 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       const isDM = peopleCount(room) <= 2;
       if (!isDM && p.notifGroups === 'mentions' && !actions.tweaks?.highlight) return;
       // App in front but another chat: in-app "push" sound; otherwise the notification tone.
-      if (p.notifSound && actions.tweaks?.sound !== false) {
-        notificationSound();
-      }
-
+      await showNotification(room, ev, { sound: p.notifSound && actions.tweaks?.sound !== false });
+    };
+    const showNotification = async (room, ev, { urgent = false, sound = true } = {}) => {
+      const p = getPrefs();
+      if (sound || urgent) notificationSound();
+      const isDM = peopleCount(room) <= 2;
       const net = networkInfo(detectNetwork(room));
       const sender = senderName(room, ev.getSender());
       const text = previewText(room, ev, client.getUserId()).replace(/^[^:]+: /, '');
       window.relay.notify({
-        title: isDM ? cleanName(sender) : `${cleanName(sender)} · ${cleanName(room.name)}`,
-        body: p.notifPreview ? text : `New message${net.name !== 'Matrix' ? ` on ${net.name}` : ''}`,
+        title: `${urgent ? '⚡ ' : ''}${isDM ? cleanName(sender) : `${cleanName(sender)} · ${cleanName(room.name)}`}`,
+        body: p.notifPreview || urgent ? text : `New message${net.name !== 'Matrix' ? ` on ${net.name}` : ''}`,
         roomId: room.roomId,
         silent: true, // Relay plays its own notification sound
       });
