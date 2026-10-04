@@ -22,6 +22,8 @@ export const DEFAULTS = {
   quietGroups: false,     // with the tabs on: groups not flagged ⭐ only notify when they mention you
   linkPreviews: true,     // rich previews under messages with a link
   smartCards: true,       // Pix, codes, tracking, dates and addresses as cards under messages
+  privacyBlur: false,     // blur previews and messages while the window isn't focused
+  privacyBlurNames: false, // …and the names too
   // Notifications
   notifications: true,
   notifPreview: true,

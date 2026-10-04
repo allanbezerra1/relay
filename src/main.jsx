@@ -17,8 +17,10 @@ import './styles/instagram.css';
 import './styles/reminders.css';
 import './styles/power.css';
 import './styles/media.css';
+import './styles/app-lock.css';
 import { DialogHost } from './dialogs.jsx';
 import { ReminderHost } from './components/Reminders.jsx';
+import PrivacyLayer from './components/PrivacyLayer.jsx';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';
 
@@ -42,4 +44,4 @@ if (!window.relay) {
 document.documentElement.dataset.platform = window.relay.platform;
 applyAppearance();
 loadSoundPack();
-createRoot(document.getElementById('root')).render(<><App /><DialogHost /><ReminderHost /></>);
+createRoot(document.getElementById('root')).render(<><App /><DialogHost /><ReminderHost /><PrivacyLayer /></>);
