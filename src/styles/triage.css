@@ -1,0 +1,151 @@
+/* ======================================================================
+   Triage (Reply / Waiting tabs in the chat list) and the "Good morning"
+   briefing panel. src/triage.js, src/briefing.js, BriefingPanel.jsx.
+   ====================================================================== */
+
+:root:not([data-style="glass"]) { --glass: var(--panel); --glass-strong: var(--panel-2, var(--panel)); --glass-line: var(--line); --glass-line-2: var(--line); --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent); --grad: linear-gradient(135deg, var(--accent-2), var(--accent)); --glow: none; --pop-shadow: var(--shadow); }
+
+/* The two triage colors: warm for "your turn", calm for "their turn". */
+:root { --tri-reply: #f2994a; --tri-waiting: var(--text-2); }
+:root[data-theme="light"] { --tri-reply: #d9650b; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --tri-reply: #d9650b; } }
+
+/* ---------- All · Reply · Waiting ---------- */
+.triage-seg {
+  display: flex; gap: 2px; margin-top: 10px; padding: 2px; border-radius: 10px;
+  background: var(--panel-2); animation: tri-in 0.22s ease-out both;
+}
+@keyframes tri-in { from { opacity: 0; transform: translateY(-3px); } }
+.triage-seg button {
+  flex: 1 1 0; min-width: 0; height: 26px; padding: 0 8px; border: 0; border-radius: 8px; background: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--text-2); white-space: nowrap;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.triage-seg button > span { overflow: hidden; text-overflow: ellipsis; }
+.triage-seg button svg { flex-shrink: 0; opacity: 0.85; }
+.triage-seg button:hover:not(.on) { color: var(--text); background: var(--tint); }
+.triage-seg button.on { color: var(--text); background: var(--active); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.triage-seg button i {
+  flex-shrink: 0; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 99px; display: inline-grid; place-items: center;
+  font-style: normal; font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--tint-2); color: var(--text-2);
+}
+.triage-seg button.tri-reply i { background: color-mix(in srgb, var(--tri-reply) 18%, transparent); color: var(--tri-reply); }
+.triage-seg button.tri-reply svg { color: var(--tri-reply); }
+.triage-seg button.tri-reply.on i { background: var(--tri-reply); color: #fff; }
+.triage-seg button.tri-waiting.on i { background: var(--text-2); color: var(--bg); }
+
+/* The reason under a chat's name, inside the Reply / Waiting tabs. */
+.triage-line {
+  margin: 1px 0 1px; font-size: 12px; font-weight: 600; line-height: 1.35; color: var(--tri-reply);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.triage-line.tri-waiting { color: var(--tri-waiting); }
+.triage-line.tri-done { color: var(--ok); }
+
+/* ---------- Header button ---------- */
+.title-tools .briefing-btn { color: #f0a020; }
+.title-tools .briefing-btn:hover { color: #f0a020; background: color-mix(in srgb, #f0a020 14%, transparent); }
+
+/* ---------- Good morning panel ---------- */
+.overlay.bf-overlay { place-items: center; padding-top: 0; }
+.bf-panel {
+  position: relative; width: 600px; max-width: calc(100vw - 32px); max-height: min(840px, calc(100vh - 48px));
+  display: flex; flex-direction: column; overflow: hidden; color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--pop-shadow);
+  animation: bf-pop 0.26s cubic-bezier(.2, .9, .3, 1.1) both;
+}
+@keyframes bf-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.bf-panel::before {
+  /* a sunrise behind the header */
+  content: ''; position: absolute; inset: 0 0 auto; height: 170px; pointer-events: none;
+  background: radial-gradient(80% 100% at 8% 0%, color-mix(in srgb, #f6b73c 22%, transparent), transparent 70%),
+              radial-gradient(60% 90% at 95% 0%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 70%);
+}
+.bf-hero { position: relative; display: flex; align-items: center; gap: 14px; padding: 20px 14px 14px 20px; }
+.bf-sun {
+  width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(140deg, #fcd34d, #f59e0b 55%, #ea6a2a);
+  box-shadow: 0 8px 22px -10px #ea6a2a, inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.bf-sun svg { animation: bf-spin 40s linear infinite; }
+@keyframes bf-spin { to { transform: rotate(360deg); } }
+.bf-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bf-title h2 { margin: 0; font-size: 22px; font-weight: 750; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bf-title span { font-size: 12.5px; color: var(--text-2); }
+.bf-icon {
+  width: 30px; height: 30px; padding: 0; flex-shrink: 0; border: 0; border-radius: 50%; display: grid; place-items: center;
+  background: none; color: var(--text-3); transition: background 0.15s, color 0.15s;
+}
+.bf-icon:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.bf-icon:disabled { cursor: default; }
+.bf-icon .spin { animation: bf-spin 0.9s linear infinite; }
+
+.bf-body { position: relative; flex: 1; overflow-y: auto; padding: 2px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.bf-body > * { flex-shrink: 0; }
+.bf-ai {
+  padding: 13px 16px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line);
+  user-select: text; min-height: 48px;
+}
+.bf-ai .ai-text h4 { color: #d98a16; }
+.bf-ai .ai-skeleton { margin: 2px 0; }
+
+.bf-sec h3 {
+  display: flex; align-items: center; gap: 8px; margin: 2px 4px 6px; font-size: 11px; font-weight: 750;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-2);
+}
+.bf-sec h3 small {
+  font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; letter-spacing: 0;
+  background: var(--tint-2); color: var(--text-2);
+}
+.bf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.bf-dot.is-reply { background: var(--tri-reply); }
+.bf-dot.is-agenda { background: var(--accent-2); }
+.bf-dot.is-waiting { background: var(--text-3); }
+.bf-dot.is-groups { background: var(--ok); }
+.bf-link {
+  margin-left: auto; padding: 3px 10px; border: 0; border-radius: 99px; font-size: 11.5px; font-weight: 650;
+  letter-spacing: 0; text-transform: none; color: var(--accent-2); background: var(--accent-soft);
+}
+.bf-link:hover { filter: brightness(1.12); }
+
+.bf-row {
+  width: 100%; display: flex; align-items: center; gap: 11px; padding: 7px 8px; margin: 0; border: 0; border-radius: 12px;
+  background: none; color: var(--text); font: inherit; text-align: left; transition: background 0.12s;
+}
+.bf-row:hover { background: var(--hover); }
+.bf-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.bf-row-main b { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bf-row-main span { font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bf-row > small { flex-shrink: 0; font-size: 11.5px; color: var(--text-3); }
+.bf-date {
+  width: 34px; height: 36px; flex-shrink: 0; border-radius: 9px; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--bg); border: 1px solid var(--line);
+}
+.bf-date b { background: var(--accent); color: #fff; font-size: 8.5px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; padding: 1px 0; }
+.bf-date span { flex: 1; display: grid; place-items: center; font-size: 14px; font-weight: 750; color: var(--text); }
+
+.bf-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px; }
+.bf-chips button {
+  max-width: 100%; padding: 5px 11px; border-radius: 99px; font: inherit; font-size: 12.5px; color: var(--text);
+  border: 1px solid var(--line); background: var(--panel-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background 0.12s;
+}
+.bf-chips button span { color: var(--text-3); }
+.bf-chips button:hover { background: var(--hover); }
+
+.bf-digest { display: flex; flex-direction: column; gap: 8px; }
+.bf-digest-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; font-size: 12px; color: var(--text-2); }
+.bf-note { padding: 4px; font-size: 12.5px; color: var(--text-2); }
+.bf-empty { padding: 22px; text-align: center; color: var(--text-2); font-size: 13.5px; }
+.bf-foot {
+  position: relative; padding: 9px 20px 12px; font-size: 11.5px; color: var(--text-3);
+  border-top: 1px solid var(--line);
+}
+
+/* Light: a white pill on the gray track, like a macOS segmented control. */
+:root[data-theme="light"] .triage-seg button.on { background: var(--bg); box-shadow: 0 1px 2px rgba(20, 20, 40, 0.1), 0 0 0 0.5px var(--line); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .triage-seg button.on { background: var(--bg); box-shadow: 0 1px 2px rgba(20, 20, 40, 0.1), 0 0 0 0.5px var(--line); }
+}

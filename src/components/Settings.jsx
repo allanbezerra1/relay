@@ -101,6 +101,8 @@ function General({ client, isLocal }) {
         <Toggle label="Send with Enter" hint={p.enterToSend ? 'Shift+Enter adds a new line.' : 'Use ⌘+Enter to send.'} checked={p.enterToSend} onChange={(v) => setPref('enterToSend', v)} />
         <Toggle label="Show message previews in the chat list" checked={p.showPreviews} onChange={(v) => setPref('showPreviews', v)} />
         <Toggle label="Move archived chats back to the inbox on new messages" hint="Muted chats always stay archived." checked={p.autoUnarchive} onChange={(v) => setPref('autoUnarchive', v)} />
+        <Toggle label="Reply and Waiting tabs" hint="Above the chat list: chats waiting for your answer, and questions you asked that nobody answered yet." checked={p.triage} onChange={(v) => setPref('triage', v)} />
+        <Toggle label="Good morning briefing" hint="A sun button in the chat list: who’s waiting on you, plans people mentioned, and busy groups." checked={p.briefing} onChange={(v) => setPref('briefing', v)} />
       </Group>
       {isLocal && (
         <Group title="This Mac">
@@ -168,6 +170,12 @@ function Notifications() {
       </Group>
       <Group title="Voice messages">
         <Volume label="Playback volume" value={p.voiceVolume} onChange={(v) => player.setVolume(v)} />
+      </Group>
+      <Group title="Reminders">
+        <Toggle label="Remind me about chats waiting for my reply" hint="A gentle reminder after a day without an answer, at most twice an hour and never at night."
+          checked={p.triageNudges} disabled={!p.notifications || !p.triage} onChange={(v) => setPref('triageNudges', v)} />
+        <Toggle label="Good morning notification" hint="The first time Relay runs in the morning, a line about what matters today."
+          checked={p.briefingNotify} disabled={!p.notifications || !p.briefing} onChange={(v) => setPref('briefingNotify', v)} />
       </Group>
       <Group title="Groups">
         <Choice label="Notify me for group messages" value={p.notifGroups} onChange={(v) => setPref('notifGroups', v)}

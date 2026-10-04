@@ -76,6 +76,8 @@ async function status(host) {
 // Defaults per kind of request; the renderer can still override them.
 const TASKS = {
   summary: { maxTokens: 900, temperature: 0.3 },
+  triage: { maxTokens: 200, temperature: 0.1 },  // short JSON verdicts (Reply / Waiting)
+  briefing: { maxTokens: 700, temperature: 0.4 }, // the morning briefing
 };
 
 /**
