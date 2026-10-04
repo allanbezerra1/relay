@@ -130,7 +130,7 @@ function Caption({ content, client, mine }) {
   return igCaption(caption, { mine, myName }) || <div className="caption"><Linkified text={caption} /></div>;
 }
 
-function ImageBody({ client, content, onOpen, meta, sticker }) {
+function ImageBody({ client, content, onOpen, meta, sticker, mine }) {
   const thumb = useMedia(client, content, { thumb: true });
   const full = useMedia(client, content);
   const src = thumb.url || full.url;
@@ -163,7 +163,7 @@ const VIDEO_ICON = {
 };
 
 /** WhatsApp/Beeper-style video: poster with a play button and the length; plays inline with a slim bar. */
-function VideoBody({ client, content, meta }) {
+function VideoBody({ client, content, meta, mine }) {
   const { url, error } = useMedia(client, content);
   // Only a real thumbnail: without one, useMedia falls back to the video file itself.
   const hasThumb = !!(content.info?.thumbnail_url || content.info?.thumbnail_file);
@@ -243,7 +243,7 @@ function VideoBody({ client, content, meta }) {
   );
 }
 
-function FileBody({ client, content }) {
+function FileBody({ client, content, mine }) {
   const { url } = useMedia(client, content);
   const name = content.filename || content.body || 'File';
   const ext = (name.split('.').pop() || '').slice(0, 4).toUpperCase();
@@ -276,14 +276,14 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
   }
   if (ev.isDecryptionFailure()) return <span className="meta-text">🔒 Unable to decrypt this message.</span>;
   if (ev.getType() === EventType.RoomMessageEncrypted) return <span className="meta-text">🔒 Decrypting…</span>;
-  if (ev.getType() === EventType.Sticker) return <ImageBody client={client} content={content} onOpen={onOpenImage} sticker />;
+  if (ev.getType() === EventType.Sticker) return <ImageBody client={client} content={content} onOpen={onOpenImage} sticker mine={mine} />;
 
   switch (content.msgtype) {
-    case MsgType.Image: return <ImageBody client={client} content={content} onOpen={(x) => onOpenImage({ ...x, eventId: ev.getId() })} meta={meta} />;
-    case MsgType.Video: return <VideoBody client={client} content={content} meta={meta} />;
+    case MsgType.Image: return <ImageBody client={client} content={content} onOpen={(x) => onOpenImage({ ...x, eventId: ev.getId() })} meta={meta} mine={mine} />;
+    case MsgType.Video: return <VideoBody client={client} content={content} meta={meta} mine={mine} />;
     case MsgType.Audio: return <VoicePlayer client={client} content={content} id={ev.getId()} mine={mine} trailing={meta}
       who={{ name: senderName(room, ev.getSender()), avatar: memberAvatar(client, room, ev.getSender(), 64) }} />;
-    case MsgType.File: return <FileBody client={client} content={content} />;
+    case MsgType.File: return <FileBody client={client} content={content} mine={mine} />;
     case 'm.location': {
       const [lat, lon] = (content.geo_uri || '').replace('geo:', '').split(/[,;]/);
       return (
