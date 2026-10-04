@@ -18,6 +18,7 @@ import { ask, notice } from '../dialogs.jsx';
 import { ChatWallpaper } from './Wallpaper.jsx';
 import { burstReaction, useLiveArrivals } from '../fx.js';
 import { on } from '../bus.js';
+import SummaryCard, { SummarizeButton, useSummaryRequest } from './SummaryCard.jsx';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -35,6 +36,10 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const [replyTo, setReplyTo] = useState(null);
   const [editing, setEditing] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  // "What did I miss?": a counter so each request remounts the card (and re-asks the AI).
+  const [summary, setSummary] = useState(0);
+  const openSummary = useCallback(() => setSummary((n) => n + 1), []);
+  useSummaryRequest(room.roomId, openSummary);
   // Open the viewer on a photo, able to page through the chat's photos and videos.
   // Pages older history in until more photos/videos show up (or the chat's start is reached).
   const loadOlderMedia = async () => {
@@ -439,7 +444,9 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
     >
       <div className="chat-main">
       <ChatWallpaper client={client} room={room} />
-      <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo} />
+      <ChatHeader client={client} info={info} infoOpen={infoOpen} onToggleInfo={toggleInfo}
+        summaryOpen={summary > 0} onSummarize={() => (summary ? setSummary(0) : openSummary())} />
+      {summary > 0 && <SummaryCard key={summary} client={client} room={room} onClose={() => setSummary(0)} />}
 
       <div className={`timeline ${threadRoot || jumpContext ? 'behind-thread' : ''}`} ref={scrollRef} onScroll={onScroll}>
         <div className="timeline-inner">
@@ -561,7 +568,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   );
 }
 
-function ChatHeader({ client, info, infoOpen, onToggleInfo }) {
+function ChatHeader({ client, info, infoOpen, onToggleInfo, summaryOpen, onSummarize }) {
   const { room } = info;
   const muted = isMuted(client, room.roomId);
   return (
@@ -575,6 +582,7 @@ function ChatHeader({ client, info, infoOpen, onToggleInfo }) {
           <svg viewBox="0 0 24 24" width="16" height="16" className={`chev ${infoOpen ? 'open' : ''}`}><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6 1.4-1.4Z" /></svg>
         </span>
       </button>
+      {onSummarize && <SummarizeButton info={info} open={summaryOpen} onClick={onSummarize} />}
       <button className={`float-panel-btn ${infoOpen ? 'on' : ''}`} onClick={onToggleInfo} title={infoOpen ? 'Hide details' : 'Show details'}>
         <svg viewBox="0 0 24 24" width="19" height="19"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-4 16H5V5h10v14Zm4 0h-2V5h2v14Z" /></svg>
       </button>

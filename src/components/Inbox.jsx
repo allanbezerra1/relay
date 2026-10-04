@@ -27,6 +27,9 @@ import { useOrganize } from './Organize.jsx';
 import { runAutomations } from '../automations.js';
 import { onReminder } from '../reminders.js';
 import { useHealthLevel } from '../reliability.js';
+import DigestPanel from './DigestPanel.jsx';
+import { Spark } from './SummaryCard.jsx';
+import { aiPrefs, useAiReady, requestSummary } from '../ai.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -159,6 +162,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [inboxToast, setInboxToast] = useState(null);
   const [msgSearch, setMsgSearch] = useState(null); // null | { query, roomId }
   const [jump, setJump] = useState(null); // { roomId, eventId } from message search
+  const [digest, setDigest] = useState(false); // local AI daily digest
+  const aiReady = useAiReady();
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
   useEffect(() => {
@@ -576,6 +581,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           section={sectioned && !query ? section : null} setSection={setSection}
           sectionCounts={{ main: unreadMain, groups: groupsUnread }}
           onSearchMessages={(q) => setMsgSearch({ query: q })}
+          headerExtra={aiReady && aiPrefs(prefs).aiDigest && (
+            <button className="icon-btn ai-digest-btn" title="Daily digest: catch up on your busiest groups" onClick={() => setDigest(true)}><Spark size={16} /></button>
+          )}
+          onSummarize={aiReady ? (id) => { openRoom(id); setTimeout(() => requestSummary(id), 60); } : null}
         />
       )}
 
@@ -608,6 +617,9 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       {msgSearch && (
         <MessageSearch client={client} rooms={rooms} initial={msgSearch} onClose={() => setMsgSearch(null)}
           onJump={(roomId, eventId) => { setQuery(''); openRoom(roomId); setJump({ roomId, eventId, at: Date.now() }); }} />
+      )}
+      {digest && (
+        <DigestPanel client={client} rooms={rooms} onOpen={(id) => { setDigest(false); openRoom(id); }} onClose={() => setDigest(false)} />
       )}
       {settings && (
         <Settings client={client} isLocal={isLocal} section={settings} onSection={setSettings}

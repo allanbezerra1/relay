@@ -25,6 +25,7 @@ const ICONS = {
   close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z',
   more: 'M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z',
+  spark: 'M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2Zm7 11 .95 2.55L22.5 16.5l-2.55.95L19 20l-.95-2.55-2.55-.95 2.55-.95L19 13ZM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15Z',
   leave: 'M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59ZM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z',
 };
 const Ico = ({ d, size = 17 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"><path fill="currentColor" d={d} /></svg>;
@@ -70,7 +71,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages, headerExtra, onSummarize,
   folderBar, topSection, menuExtras, emptyText, // folders, "Important", snooze (Organize.jsx)
   section, setSection, sectionCounts = {}, // "Main" / "Groups" tabs (null when off)
 }) {
@@ -163,6 +164,7 @@ export default function RoomList({
 
   const menuItems = (r) => [
     { label: 'Open', icon: <Ico d={ICONS.open} size={15} />, run: () => onOpen(r.id) },
+    onSummarize && !r.invite && { label: 'Summarize chat', icon: <Ico d={ICONS.spark} size={15} />, run: () => onSummarize(r.id) },
     'separator',
     { label: r.pinned ? 'Unpin' : 'Pin to top', icon: <Ico d={ICONS.pin} size={15} />, run: () => actions.togglePin(r) },
     { label: r.muted ? 'Unmute' : 'Mute', icon: <Ico d={ICONS.mute} size={15} />, run: () => actions.toggleMute(r) },
@@ -185,6 +187,7 @@ export default function RoomList({
         <div className="sidebar-title">
           <h2>{view === 'archive' ? 'Archive' : filterName}</h2>
           <div className="title-tools">
+            {headerExtra}
             {onNewGroup && <button className="icon-btn" title="New group" onClick={onNewGroup}><Ico d={ICONS.newGroup} /></button>}
             <button className={`icon-btn ${showFilters || filtersActive ? 'on' : ''}`} title="Filters" onClick={() => setShowFilters(!showFilters)}><Ico d={ICONS.filter} /></button>
             <button className={`icon-btn ${showSearch || query ? 'on' : ''}`} title="Search (⌘F)" onClick={() => { setShowSearch(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Ico d={ICONS.search} /></button>
