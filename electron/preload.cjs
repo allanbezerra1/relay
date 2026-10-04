@@ -65,6 +65,18 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener(`local:${channel}`, fn);
     },
   },
+  scheduled: {
+    list: () => ipcRenderer.invoke('scheduled:list'),
+    add: (item) => ipcRenderer.invoke('scheduled:add', item),
+    update: (id, patch) => ipcRenderer.invoke('scheduled:update', id, patch),
+    cancel: (id) => ipcRenderer.invoke('scheduled:cancel', id),
+    sendNow: (id) => ipcRenderer.invoke('scheduled:sendNow', id),
+    onChange: (cb) => {
+      const fn = (_e, list) => cb(list);
+      ipcRenderer.on('scheduled:changed', fn);
+      return () => ipcRenderer.removeListener('scheduled:changed', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);

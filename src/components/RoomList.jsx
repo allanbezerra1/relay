@@ -6,6 +6,7 @@ import MiniPlayer from './MiniPlayer.jsx';
 import UpdateBanner from './UpdateBanner.jsx';
 import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
+import { combo } from '../platform.js';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -65,7 +66,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles, onNewGroup,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages,
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -176,6 +177,12 @@ export default function RoomList({
             placeholder="Search chats"
           />
         </div>
+        {query.trim() && onSearchMessages && (
+          <button className="search-msgs" onMouseDown={(e) => e.preventDefault()} onClick={() => onSearchMessages(query.trim())} title={`Search messages (${combo('Shift+F')})`}>
+            <Ico d={ICONS.search} size={14} />
+            <span>Search messages for “<b>{query.trim()}</b>”</span>
+          </button>
+        )}
         <div className={`chips ${showFilters || filtersActive ? '' : 'collapsed'}`}>
           <button className={view === 'inbox' && !unreadOnly && !typeFilter && !labelFilter ? 'on' : ''}
             onClick={() => { setView('inbox'); setUnreadOnly(false); setTypeFilter(null); setLabelFilter(null); }}>All</button>
