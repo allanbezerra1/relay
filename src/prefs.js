@@ -20,6 +20,7 @@ export const DEFAULTS = {
   importantSection: true, // "Important" group on top: unread one-to-one chats and mentions
   splitGroups: true,      // "Main" (one-to-one chats + ⭐ groups) and "Groups" tabs
   quietGroups: false,     // with the tabs on: groups not flagged ⭐ only notify when they mention you
+  linkPreviews: true,     // rich previews under messages with a link
   // Notifications
   notifications: true,
   notifPreview: true,

@@ -108,6 +108,8 @@ function General({ client, isLocal }) {
           checked={p.splitGroups} onChange={(v) => setPref('splitGroups', v)} />
         <Toggle label="Quiet groups" hint="Groups not flagged ⭐ only notify you when they mention you." disabled={!p.splitGroups}
           checked={p.quietGroups} onChange={(v) => setPref('quietGroups', v)} />
+        <Toggle label="Link previews" hint="A card with the page’s title, description and picture under messages with a link. Your local server fetches the page; it never reaches your local network."
+          checked={p.linkPreviews !== false} onChange={(v) => setPref('linkPreviews', v)} />
         <Toggle label="Move archived chats back to the inbox on new messages" hint="Muted chats always stay archived." checked={p.autoUnarchive} onChange={(v) => setPref('autoUnarchive', v)} />
       </Group>
       {isLocal && (
