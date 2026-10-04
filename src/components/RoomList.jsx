@@ -70,6 +70,7 @@ export default function RoomList({
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
   typeFilter, setTypeFilter, onDropFiles, onNewGroup,
+  folderBar, topSection, menuExtras, emptyText, // folders, "Important", snooze (Organize.jsx)
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -169,6 +170,7 @@ export default function RoomList({
       : { label: 'Mark as unread', icon: <Ico d={ICONS.unread} size={15} />, run: () => actions.markUnread(r) },
     { label: selected.has(r.id) ? 'Deselect' : 'Select', icon: <Ico d={ICONS.select} size={15} />, run: () => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }) },
     { label: 'Copy name', icon: <Ico d={ICONS.copy} size={15} />, run: () => navigator.clipboard.writeText(r.name) },
+    ...(menuExtras?.(r, { x: menu.x, y: menu.y }) || []),
     'separator',
     { label: 'Leave chat', danger: true, icon: <Ico d={ICONS.leave} size={15} />, run: () => actions.leave(r) },
   ];
@@ -187,6 +189,7 @@ export default function RoomList({
               onClick={() => (selecting ? clearSelection() : setSelectMode(true))}><Ico d={ICONS.select} /></button>
           </div>
         </div>
+        {folderBar}
         <div className={`search ${showSearch || query ? '' : 'collapsed'}`}>
           <Ico d={ICONS.search} size={15} />
           <input
@@ -247,9 +250,10 @@ export default function RoomList({
             ))}
           </div>
         )}
-        {listRooms.length === 0 && pinned.length === 0 && (
+        {!query && topSection}
+        {listRooms.length === 0 && pinned.length === 0 && !(topSection && !query) && (
           <div className="list-empty muted">
-            {query ? 'No chats match your search.' : view === 'archive' ? 'Nothing archived.' : unreadOnly ? 'You’re all caught up ✨' : 'No chats here yet.'}
+            {query ? 'No chats match your search.' : emptyText || (view === 'archive' ? 'Nothing archived.' : unreadOnly ? 'You’re all caught up ✨' : 'No chats here yet.')}
           </div>
         )}
         {listRooms.map((r) => {
@@ -274,6 +278,7 @@ export default function RoomList({
                     <svg className="muted-ico" viewBox="0 0 24 24" width="14" height="14"><title>Muted</title><path fill="currentColor" d="M20 18.69 7.84 6.14 5.27 3.49 4 4.76l2.8 2.8v.01A6.96 6.96 0 0 0 6 11v5l-2 2v1h13.73l2 2L21 19.72l-1-1.03ZM12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm6-7.32V11a6.99 6.99 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16c-.47.1-.92.26-1.34.46L18 14.68Z" /></svg>
                   )}
                   {r.pinned && <span className="pin" title="Pinned">📌</span>}
+                  {r.snoozeLabel && <span className="snooze-chip" title="Comes back to the inbox">⏰ {r.snoozeLabel}</span>}
                   <span className="room-time">{r.ts ? formatTime(r.ts) : ''}</span>
                 </div>
                 <div className="room-bottom">
