@@ -1,0 +1,77 @@
+/* ======================================================================
+   Multi-select in the chat list (RoomList.jsx): header, check circles, bottom dock
+   ====================================================================== */
+.sel-head {
+  display: flex; align-items: center; gap: 10px; margin: 2px 14px 8px; padding: 6px 8px 6px 6px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel-2, var(--panel))); border: 1px solid color-mix(in srgb, var(--accent-2) 35%, transparent);
+  animation: sel-in 0.2s cubic-bezier(.2, 1.2, .35, 1) both;
+}
+@keyframes sel-in { from { opacity: 0; transform: translateY(-4px); } }
+.sel-close {
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 10px; display: grid; place-items: center; cursor: pointer;
+  background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text);
+}
+.sel-close:hover { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.sel-count { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sel-count b { color: var(--text); font-size: 15px; }
+.sel-all { flex-shrink: 0; padding: 6px 10px; border: 0; border-radius: 9px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 650; color: var(--accent-2); background: none; }
+.sel-all:hover { background: var(--accent-soft); }
+
+/* Rows: a check circle before the avatar; the photo stays visible */
+.room.selecting { transition: background 0.15s; }
+.sel-box {
+  width: 22px; height: 22px; flex-shrink: 0; align-self: center; border-radius: 50%; display: grid; place-items: center; margin-right: -2px;
+  border: 2px solid color-mix(in srgb, var(--text) 30%, transparent); color: transparent;
+  transition: background 0.15s, border-color 0.15s, transform 0.2s cubic-bezier(.2, 1.6, .4, 1);
+  animation: sel-pop 0.22s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes sel-pop { from { transform: scale(0.4); opacity: 0; } }
+.room.selecting:hover .sel-box:not(.on) { border-color: var(--accent-2); }
+.sel-box.on { border-color: transparent; color: #fff; background: linear-gradient(135deg, var(--accent-2), var(--accent)); box-shadow: 0 4px 12px -4px var(--accent); transform: scale(1.06); }
+.room.selected { background: color-mix(in srgb, var(--accent) 14%, transparent) !important; box-shadow: inset 3px 0 0 var(--accent-2); }
+:root[data-motion="off"] .sel-box, :root[data-motion="off"] .sel-head, :root[data-motion="off"] .sel-dock, :root[data-motion="off"] .sel-more { animation: none; }
+
+/* Bottom dock */
+.sidebar { position: relative; }
+.sel-dock {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 30; display: flex; gap: 2px; padding: 6px; border-radius: 20px;
+  background: color-mix(in srgb, var(--bg, #0d0e15) 86%, transparent); backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.7), inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  animation: sel-up 0.26s cubic-bezier(.2, 1.2, .35, 1) both;
+}
+@keyframes sel-up { from { opacity: 0; transform: translateY(14px); } }
+.sel-dock > button, .sel-more-wrap > button {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px 7px; margin: 0;
+  border: 0; border-radius: 14px; cursor: pointer; background: none; color: var(--text-2); font: inherit; font-size: 11px; font-weight: 600;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.sel-dock > button span, .sel-more-wrap > button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sel-dock > button:hover, .sel-more-wrap > button:hover, .sel-more-wrap > button.on { background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--text); }
+.sel-dock > button:active { transform: scale(0.95); }
+.sel-dock > button.sel-danger { color: #fb7185; }
+.sel-dock > button.sel-danger:hover { background: color-mix(in srgb, #f43f5e 15%, transparent); color: #fda4af; }
+.sel-more-wrap { flex: 1; min-width: 0; position: relative; display: flex; }
+.sel-more {
+  position: absolute; right: 0; bottom: calc(100% + 10px); width: 232px; max-height: 340px; overflow-y: auto; padding: 6px; border-radius: 16px;
+  background: var(--bg, #0d0e15); background-image: linear-gradient(color-mix(in srgb, var(--text) 5%, transparent), color-mix(in srgb, var(--text) 5%, transparent));
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); box-shadow: 0 20px 44px -16px rgba(0, 0, 0, 0.75);
+  animation: sel-up 0.18s ease-out both;
+}
+.sel-more button {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 0; border: 0; border-radius: 10px; cursor: pointer;
+  background: none; color: var(--text); font: inherit; font-size: 13px; text-align: left;
+}
+.sel-more button:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.sel-more button svg { color: var(--text-2); flex-shrink: 0; }
+.sel-more .label-check { margin-left: auto; color: var(--accent-2); }
+.sel-more-sep { margin: 6px 10px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+.sel-more-empty { padding: 6px 10px 8px; font-size: 12px; color: var(--text-2); }
+
+.sel-working { flex: 1; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
+.sel-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, #fb7185 30%, transparent); border-top-color: #fb7185; animation: bf-spin 0.8s linear infinite; flex-shrink: 0; }
+.sel-progress { flex: 1; height: 5px; border-radius: 99px; overflow: hidden; background: color-mix(in srgb, var(--text) 10%, transparent); }
+.sel-progress b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #fb7185, #e11d48); transition: width 0.3s; }
+
+/* Room for the dock at the end of the list */
+.sidebar:has(.sel-dock) .room-list { padding-bottom: 92px; }

@@ -413,8 +413,9 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       }
     },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
-    leave: async (r) => {
-      if (!(await ask({ title: `Leave “${r.name}”?`, body: 'This can’t be undone from Relay.', ok: 'Leave', danger: true, icon: 'leave' }))) return;
+    // `ask: false` for bulk actions (one confirmation for all).
+    leave: async (r, { ask: confirmFirst = true } = {}) => {
+      if (confirmFirst && !(await ask({ title: `Leave “${r.name}”?`, body: 'This can’t be undone from Relay.', ok: 'Leave', danger: true, icon: 'leave' }))) return;
       await client.leave(r.id);
       if (r.id === activeId) openRoom(null);
     },
