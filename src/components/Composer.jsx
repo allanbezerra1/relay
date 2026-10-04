@@ -12,6 +12,9 @@ import { schedulingAvailable } from '../scheduled.js';
 import { combo } from '../platform.js';
 import { on } from '../bus.js';
 import MediaTray from './MediaTray.jsx';
+import { aiAvailable, aiPrefs } from '../ai.js';
+import { autoTranslateLang, translateOutgoing, detectLang, langName, targetTag } from '../translate.js';
+import { TranslateIcon } from './Translate.jsx';
 
 const drafts = new Map(); // roomId -> text, kept while the app is open
 
@@ -127,7 +130,12 @@ const Composer = forwardRef(function Composer(
   ref,
 ) {
   const [text, setText] = useState(() => drafts.get(room.roomId) || '');
-  const { enterToSend } = usePrefs();
+  const prefs = usePrefs();
+  const { enterToSend } = prefs;
+  // Automatic translation (header "Auto"): what you write goes out in the chat's language.
+  const autoLang = aiAvailable() && aiPrefs(prefs).aiEnabled ? autoTranslateLang(room.roomId, prefs) : null;
+  const [translating, setTranslating] = useState(false);
+  const [trError, setTrError] = useState(null);
   const [menu, setMenu] = useState(false);
   const [emoji, setEmoji] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
@@ -240,7 +248,7 @@ const Composer = forwardRef(function Composer(
     setSelId(id);
     input.current?.focus();
   };
-  const send = async () => {
+  const send = async ({ untranslated = false } = {}) => {
     const body = text.trim();
     if (staged.length) {
       const items = staged.map((x) => ({ ...x, caption: (x.id === selItem.id ? body : x.caption || '').trim() }));
@@ -254,7 +262,18 @@ const Composer = forwardRef(function Composer(
       setViewOnce(false);
       return;
     }
-    if (!body) return;
+    if (!body || translating) return;
+    setTrError(null);
+
+    let translated = null;
+    const toLang = !editing && !untranslated && !body.startsWith('/') ? autoLang : null;
+    if (toLang && detectLang(body).lang !== toLang) {
+      setTranslating(true);
+      const res = await translateOutgoing(body, toLang);
+      setTranslating(false);
+      if (!res.ok) { setTrError(res.error); input.current?.focus(); return; }
+      translated = res.text;
+    }
     setText('');
     drafts.delete(room.roomId);
     typingSent.current = 0;
@@ -264,6 +283,7 @@ const Composer = forwardRef(function Composer(
     if (body.startsWith('/me ')) content = { msgtype: MsgType.Emote, body: body.slice(4) };
     else if (body.startsWith('/shrug')) content = { msgtype: MsgType.Text, body: `¯\\_(ツ)_/¯ ${body.slice(6).trim()}`.trim() };
     else content = { msgtype: MsgType.Text, body };
+    if (translated) content = { msgtype: MsgType.Text, body: translated, 'dev.relay.original': body, 'dev.relay.translated_to': toLang };
 
     if (editing) {
       content = {
@@ -362,6 +382,13 @@ const Composer = forwardRef(function Composer(
           onAddMore={() => photoInput.current?.click()}
           canViewOnce={canViewOnce && stagedMediaOnly && !asDocument} viewOnce={viewOnce} onViewOnce={setViewOnce} />
       )}
+      {trError && (
+        <div className="composer-error tr-send-error">
+          <span>Couldn’t translate your message. {trError}</span>
+          <button className="tr-send-anyway" onClick={() => send({ untranslated: true })}>Send as written</button>
+          <button onClick={() => setTrError(null)} title="Dismiss">✕</button>
+        </div>
+      )}
       {voiceError && <div className="composer-error">{voiceError} <button onClick={() => setVoiceError(null)}>✕</button></div>}
 
       <input ref={photoInput} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { onFiles([...e.target.files]); e.target.value = ''; }} />
@@ -399,7 +426,8 @@ const Composer = forwardRef(function Composer(
             )}
           </div>
 
-          <div className="input-wrap">
+          <div className={`input-wrap ${translating ? 'translating' : ''}`}>
+            {translating && <span className="input-tr"><TranslateIcon size={13} />Translating into {langName(autoLang)}…</span>}
             {networkId && networkId !== 'matrix' && <span className="input-net"><NetIcon id={networkId} variant="plain" size={16} /></span>}
             <textarea
               ref={input}
@@ -408,7 +436,10 @@ const Composer = forwardRef(function Composer(
               onChange={(e) => update(e.target.value)}
               onKeyDown={onKeyDown}
               onPaste={onPaste}
-              placeholder={staged.length ? 'Add a caption…' : network.name !== 'Matrix' ? `Message ${roomName || ''} on ${network.name}` : 'Message'}
+              readOnly={translating}
+              placeholder={staged.length ? 'Add a caption…'
+                : autoLang && !editing ? `Write in ${langName(targetTag(prefs))} · sent in ${langName(autoLang)}`
+                : network.name !== 'Matrix' ? `Message ${roomName || ''} on ${network.name}` : 'Message'}
             />
             <button className={`icon-in ${emoji ? 'on' : ''}`} onClick={() => setEmoji(!emoji)} title="Emoji"><Icon d={ICON.smile} /></button>
             {!hasText && !editing && <button className="icon-in" onClick={startVoice} title="Record a voice message"><Icon d={ICON.wave} /></button>}

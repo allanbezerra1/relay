@@ -1,0 +1,93 @@
+/* ======================================================================
+   Message translation (components/Translate.jsx): the chip and the
+   translation under messages, "Translate" / "Auto" in the chat header,
+   and the composer while what you wrote is being translated.
+   ====================================================================== */
+
+:root:not([data-style="glass"]) { --glass: var(--panel); --glass-strong: var(--panel-2, var(--panel)); --glass-line: var(--line); --glass-line-2: var(--line); --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent); --grad: linear-gradient(135deg, var(--accent-2), var(--accent)); --glow: none; --pop-shadow: var(--shadow); }
+
+/* ---------- Chat header: Translate · Auto · Summarize, side by side ---------- */
+.chat-ai-tools {
+  position: absolute; right: 56px; top: 14px; z-index: 1; display: flex; align-items: center; gap: 8px; pointer-events: none;
+}
+.chat-ai-tools:empty { display: none; }
+.chat-ai-tools .ai-sum-btn { position: static; pointer-events: auto; }
+.tr-btn, .tr-auto-btn { padding: 0 11px 0 9px; white-space: nowrap; animation: tr-in 0.25s ease both; }
+.tr-btn span { font-variant-numeric: tabular-nums; }
+.tr-btn:disabled { cursor: progress; }
+.tr-btn:disabled:hover { transform: none; }
+.tr-auto-btn.on, .tr-auto-btn.on:hover {
+  color: #fff; background: var(--grad); box-shadow: 0 6px 18px -8px var(--accent);
+}
+.tr-spin {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid color-mix(in srgb, var(--accent-2) 25%, transparent); border-top-color: var(--accent-2);
+  animation: tr-spin 0.8s linear infinite;
+}
+@keyframes tr-spin { to { transform: rotate(360deg); } }
+@keyframes tr-in { from { opacity: 0; transform: translateY(3px) scale(0.97); } }
+
+/* ---------- Under a message ---------- */
+.tr-chip {
+  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; width: fit-content;
+  margin: 4px 0 0 2px; height: 24px; padding: 0 10px 0 8px; border-radius: 99px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-2);
+  background: var(--glass-strong); border: 1px solid var(--glass-line-2);
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.tr-chip.mine { align-self: flex-end; margin: 4px 2px 0 0; }
+.tr-chip svg { color: var(--accent-2); flex-shrink: 0; }
+.tr-chip small { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.tr-chip small::before { content: '·'; margin-right: 4px; }
+.tr-chip:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line)); transform: translateY(-1px); }
+
+.tr-card {
+  align-self: flex-start; margin-top: 4px; max-width: 100%; min-width: 180px; padding: 7px 12px 9px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent-2) 7%, var(--glass-strong));
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, var(--glass-line-2));
+  animation: tr-in 0.22s ease both;
+}
+.tr-card.mine { align-self: flex-end; }
+.tr-head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font-size: 11px; font-weight: 700; color: var(--accent-2); }
+.tr-head svg { flex-shrink: 0; }
+.tr-head span { margin-right: auto; }
+.tr-head button {
+  border: 0; background: none; padding: 1px 5px; margin-right: -5px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; color: var(--text-3);
+}
+.tr-head button:hover { color: var(--text); background: var(--tint-2); }
+.tr-card p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.tr-card.is-error { background: color-mix(in srgb, var(--danger) 6%, var(--glass-strong)); border-color: color-mix(in srgb, var(--danger) 25%, var(--glass-line-2)); }
+.tr-card.is-error .tr-head { color: var(--danger); }
+.tr-err { font-size: 12.5px; line-height: 1.4; color: var(--text-2); }
+.tr-err button { border: 0; background: none; padding: 0; color: var(--accent-2); font-weight: 600; }
+.tr-err button:hover { text-decoration: underline; }
+.tr-skel { display: flex; flex-direction: column; gap: 6px; padding: 5px 0 2px; }
+.tr-skel i {
+  display: block; height: 9px; width: 85%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--tint) 0%, var(--tint-2) 40%, var(--tint) 80%) 0 0 / 220% 100%;
+  animation: tr-shimmer 1.3s linear infinite;
+}
+.tr-skel i + i { width: 55%; }
+@keyframes tr-shimmer { to { background-position: -220% 0; } }
+
+/* ---------- Composer: sending in the chat's language ---------- */
+.input-wrap.translating textarea { opacity: 0.45; }
+.input-tr {
+  position: absolute; right: 50px; top: 50%; transform: translateY(-50%); z-index: 2; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 99px;
+  font-size: 12px; font-weight: 600; white-space: nowrap; color: #fff; background: var(--grad);
+  box-shadow: 0 6px 18px -8px var(--accent); animation: tr-pulse 1.2s ease-in-out infinite;
+}
+@keyframes tr-pulse { 50% { opacity: 0.7; } }
+.tr-send-error { align-items: center; }
+.tr-send-error span { flex: 1; min-width: 0; }
+.composer-error .tr-send-anyway {
+  flex-shrink: 0; padding: 4px 10px; border-radius: 8px; font-weight: 600;
+  background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger);
+}
+.composer-error .tr-send-anyway:hover { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-btn, .tr-auto-btn, .tr-card, .tr-skel i, .input-tr { animation: none; }
+}

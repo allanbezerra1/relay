@@ -12,6 +12,8 @@ export const AI_DEFAULTS = {
   aiHost: 'auto',    // 'auto' tries LM Studio on this computer (localhost:1234, 127.0.0.1:1234)
   aiModel: '',       // '' = the first model LM Studio has loaded
   aiThreshold: 15,   // unread messages before the header button turns into a "Summarize N" pill
+  aiTranslate: true, // "Translate" under messages written in another language (src/translate.js)
+  aiTranslateTo: '', // '' = the system language
 };
 export const aiPrefs = (p = getPrefs()) => ({ ...AI_DEFAULTS, ...Object.fromEntries(Object.keys(AI_DEFAULTS).filter((k) => p[k] !== undefined).map((k) => [k, p[k]])) });
 export const aiAvailable = () => !!window.relay?.ai;
@@ -46,7 +48,7 @@ export async function aiStatus({ fresh = false } = {}) {
  */
 export function useAiReady() {
   const p = aiPrefs(usePrefs());
-  const status = useSyncExternalStore((l) => { readyListeners.add(l); return () => readyListeners.delete(l); }, () => ready);
+  const status = useReadyStatus();
   useEffect(() => {
     if (!aiAvailable() || !p.aiEnabled) return;
     let last = 0;
@@ -59,6 +61,19 @@ export function useAiReady() {
     window.addEventListener('focus', probe);
     return () => window.removeEventListener('focus', probe);
   }, [p.aiEnabled, p.aiHost]);
+  if (!aiAvailable() || !p.aiEnabled) return false;
+  return p.aiHost !== 'auto' || !!status?.ok;
+}
+
+const useReadyStatus = () => useSyncExternalStore((l) => { readyListeners.add(l); return () => readyListeners.delete(l); }, () => ready);
+
+/**
+ * Like useAiReady, without probing: for things drawn many times (one per message) inside a view
+ * whose header already calls useAiReady.
+ */
+export function useAiReadyQuiet() {
+  const p = aiPrefs(usePrefs());
+  const status = useReadyStatus();
   if (!aiAvailable() || !p.aiEnabled) return false;
   return p.aiHost !== 'auto' || !!status?.ok;
 }
