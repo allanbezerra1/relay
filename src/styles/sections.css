@@ -27,6 +27,6 @@
   color: var(--text-2); font-size: 12px; font-weight: 600; transition: background 0.15s, color 0.15s;
 }
 .sec-tools button:hover { background: var(--tint-2); color: var(--text); }
-.imp-star { font-size: 11px; margin-left: 2px; }
+.imp-group-star { font-size: 11px; margin-left: 2px; }
 .arch-tag { font-size: 10px; font-weight: 600; color: var(--text-3); border: 1px solid var(--glass-line-2); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
 

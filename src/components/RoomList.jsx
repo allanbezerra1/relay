@@ -26,6 +26,8 @@ const ICONS = {
   more: 'M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z',
   spark: 'M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2Zm7 11 .95 2.55L22.5 16.5l-2.55.95L19 20l-.95-2.55-2.55-.95 2.55-.95L19 13ZM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15Z',
+  reply: 'M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11Z',
+  hourglass: 'M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6Zm10 14.5V20H8v-3.5l4-4 4 4Zm-4-5-4-4V4h8v3.5l-4 4Z',
   leave: 'M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59ZM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z',
 };
 const Ico = ({ d, size = 17 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"><path fill="currentColor" d={d} /></svg>;
@@ -74,9 +76,10 @@ export default function RoomList({
   typeFilter, setTypeFilter, onDropFiles, onNewGroup, onSearchMessages, headerExtra, onSummarize,
   folderBar, topSection, menuExtras, emptyText, // folders, "Important", snooze (Organize.jsx)
   section, setSection, sectionCounts = {}, // "Main" / "Groups" tabs (null when off)
+  triage = null, setTriage = null, triageCounts = { reply: 0, waiting: 0 },
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
-  const showTiles = view === 'inbox' && !query && !unreadOnly;
+  const showTiles = view === 'inbox' && !query && !unreadOnly && !triage;
   const pinned = showTiles ? rooms.filter((r) => r.pinned) : [];
   const listRooms = showTiles ? rooms.filter((r) => !r.pinned) : rooms;
   const [menu, setMenu] = useState(null);
@@ -239,7 +242,7 @@ export default function RoomList({
         )}
         <div className={`chips ${showFilters || filtersActive ? '' : 'collapsed'}`}>
           <button className={view === 'inbox' && !unreadOnly && !typeFilter && !labelFilter ? 'on' : ''}
-            onClick={() => { setView('inbox'); setUnreadOnly(false); setTypeFilter(null); setLabelFilter(null); }}>All</button>
+            onClick={() => { setView('inbox'); setUnreadOnly(false); setTypeFilter(null); setLabelFilter(null); setTriage?.(null); }}>All</button>
           <button className={unreadOnly ? 'on' : ''} onClick={() => { setView('inbox'); setUnreadOnly(!unreadOnly); }}>Unread</button>
           <button className={typeFilter === 'dm' ? 'on' : ''} onClick={() => setTypeFilter(typeFilter === 'dm' ? null : 'dm')}>People</button>
           <button className={typeFilter === 'group' ? 'on' : ''} onClick={() => setTypeFilter(typeFilter === 'group' ? null : 'group')}>Groups</button>
@@ -253,6 +256,19 @@ export default function RoomList({
             </button>
           ))}
         </div>
+        {setTriage && view === 'inbox' && !query && (triage || triageCounts.reply > 0 || triageCounts.waiting > 0) && (
+          <div className="triage-seg" role="tablist" aria-label="Triage">
+            <button role="tab" aria-selected={!triage} className={!triage ? 'on' : ''} onClick={() => setTriage(null)}>All</button>
+            <button role="tab" aria-selected={triage === 'reply'} className={`tri-reply ${triage === 'reply' ? 'on' : ''}`}
+              onClick={() => setTriage(triage === 'reply' ? null : 'reply')} title="Chats waiting for your reply">
+              <Ico d={ICONS.reply} size={14} /><span>Reply</span>{triageCounts.reply > 0 && <i>{triageCounts.reply}</i>}
+            </button>
+            <button role="tab" aria-selected={triage === 'waiting'} className={`tri-waiting ${triage === 'waiting' ? 'on' : ''}`}
+              onClick={() => setTriage(triage === 'waiting' ? null : 'waiting')} title="You asked something and haven’t heard back">
+              <Ico d={ICONS.hourglass} size={13} /><span>Waiting</span>{triageCounts.waiting > 0 && <i>{triageCounts.waiting}</i>}
+            </button>
+          </div>
+        )}
       </header>
 
       <SyncBar profiles={profiles} />
@@ -285,7 +301,10 @@ export default function RoomList({
         {!query && topSection}
         {listRooms.length === 0 && pinned.length === 0 && !(topSection && !query) && (
           <div className="list-empty muted">
-            {query ? 'No chats match your search.' : emptyText || (view === 'archive' ? 'Nothing archived.' : unreadOnly ? 'You’re all caught up ✨' : 'No chats here yet.')}
+            {query ? 'No chats match your search.'
+              : triage === 'reply' ? 'Nobody is waiting for your reply ✨'
+              : triage === 'waiting' ? 'You’re not waiting on anyone.'
+              : emptyText || (view === 'archive' ? 'Nothing archived.' : unreadOnly ? 'You’re all caught up ✨' : 'No chats here yet.')}
           </div>
         )}
         {listRooms.map((r) => {
@@ -311,10 +330,11 @@ export default function RoomList({
                   )}
                   {r.pinned && <span className="pin" title="Pinned">📌</span>}
                   {r.snoozeLabel && <span className="snooze-chip" title="Comes back to the inbox">⏰ {r.snoozeLabel}</span>}
-                  {r.importantGroup && <span className="imp-star" title="Important group">⭐</span>}
+                  {r.importantGroup && <span className="imp-group-star" title="Important group">⭐</span>}
                   {r.archived && r.group && <span className="arch-tag" title="Archived">archived</span>}
                   <span className="room-time">{r.ts ? formatTime(r.ts) : ''}</span>
                 </div>
+                {r.triageLabel && <div className={`triage-line tri-${r.triageStatus || 'reply'}`} title={r.triageLabel}>{r.triageLabel}</div>}
                 <div className="room-bottom">
                   {activity.has(r.id) ? (
                     <span className={`room-preview room-activity ${activity.get(r.id).recording ? 'rec' : ''}`}>

@@ -28,8 +28,11 @@ import { runAutomations } from '../automations.js';
 import { onReminder } from '../reminders.js';
 import { useHealthLevel } from '../reliability.js';
 import DigestPanel from './DigestPanel.jsx';
+import BriefingPanel, { SunIcon } from './BriefingPanel.jsx';
 import { Spark } from './SummaryCard.jsx';
 import { aiPrefs, useAiReady, requestSummary } from '../ai.js';
+import { triageOf, triageLists, refineTriage, useTriageNudges, useTriageVersion, ago } from '../triage.js';
+import { useMorningBriefing, BRIEFING_NOTIFICATION } from '../briefing.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -163,6 +166,9 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [msgSearch, setMsgSearch] = useState(null); // null | { query, roomId }
   const [jump, setJump] = useState(null); // { roomId, eventId } from message search
   const [digest, setDigest] = useState(false); // local AI daily digest
+  const [briefing, setBriefing] = useState(false); // "Good morning" panel
+  const [triage, setTriage] = useState(null); // null | 'reply' | 'waiting'
+  const triageVersion = useTriageVersion(); // bumps when the AI refines a chat's triage
   const aiReady = useAiReady();
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
@@ -280,10 +286,40 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const allLabels = getLabels(client);
   // Folders, snooze and the "Important" group (Organize.jsx) narrow and arrange what's left.
   const org = useOrganize({ client, rooms, profiles, labels: allLabels, activeId, openRoom: (id) => openRoom(id), view, setView, query });
-  // The "Main" / "Groups" tabs split the whole inbox; inside a folder you see everything in it.
-  const sectioned = split && view === 'inbox' && !org.folderActive;
+  // ----- Triage: Reply (waiting on you) / Waiting (waiting on others) -----
+  const myId = client.getUserId();
+  const triageOn = prefs.triage !== false;
+  const triaged = useMemo(
+    () => (triageOn ? triageLists(rooms.filter((r) => !r.archived && matchesFilter(r, filter)), myId) : { reply: [], waiting: [] }),
+    [rooms, filter, matchesFilter, myId, triageOn, triageVersion],
+  );
+  const triageActive = triageOn && view === 'inbox' && !query.trim() ? triage : null;
+  const triageShown = useRef(new Set()); // what the open tab listed last time
+
+  // The "Main" / "Groups" tabs split the whole inbox; inside a folder, or on Reply / Waiting, you see everything that fits.
+  const sectioned = split && view === 'inbox' && !org.folderActive && !triageActive;
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
+    if (triageActive) {
+      // Oldest first: whoever has been waiting longest, with why it's here. The chat you're
+      // answering stays put until you move on, instead of vanishing as soon as you reply.
+      const list = triaged[triageActive];
+      const sticky = activeId && !list.some((r) => r.id === activeId) && triageShown.current.has(activeId) && rooms.find((r) => r.id === activeId);
+      const out = (sticky ? [...list, sticky].sort((a, b) => a.ts - b.ts) : list).filter((r) => {
+        if (unreadOnly && !(r.unread || r.markedUnread || r.id === activeId)) return false;
+        if (labelFilter && !r.labels.some((l) => l.id === labelFilter)) return false;
+        if (typeFilter === 'dm' && r.group) return false;
+        if (typeFilter === 'group' && !r.group) return false;
+        return true;
+      }).map((r) => {
+        const t = triageOf(r, myId);
+        if (!t) return { ...r, triageStatus: 'done', triageLabel: 'Done' };
+        return { ...r, triageStatus: t.status, triageLabel: `${t.reason || (t.status === 'reply' ? 'Waiting for your reply' : 'No answer yet')} · ${ago(t.since)}` };
+      });
+      triageShown.current = new Set(out.map((r) => r.id));
+      return out;
+    }
+    triageShown.current = new Set();
     return rooms.filter((r) => {
       if (q) return r.name.toLowerCase().includes(q) || r.preview.toLowerCase().includes(q);
       if (!matchesFilter(r, filter)) return false;
@@ -300,11 +336,13 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       if (typeFilter === 'group' && !r.group) return false;
       return true;
     });
-  }, [rooms, query, filter, view, unreadOnly, labelFilter, typeFilter, activeId, matchesFilter, sectioned, section]);
+  }, [rooms, query, filter, view, unreadOnly, labelFilter, typeFilter, activeId, matchesFilter, sectioned, section, triageActive, triaged, myId]);
   const inMain = (r) => !sectioned || !r.group || r.importantGroup || r.pinned;
   const unreadMain = rooms.filter((r) => !r.archived && !r.muted && (r.unread || r.markedUnread) && inMain(r)).length;
   const groupsUnread = rooms.filter((r) => r.group && !r.muted && !isStatusRoom(r.room) && (r.unread || r.markedUnread)).length;
-  const { list: visibleList, important } = org.arrange(query.trim() ? visible : visible.filter(org.filter));
+  // Reply / Waiting keep their own order (longest waiting first) and no "Important" group on top.
+  const { list: visibleList, important } = triageActive ? { list: visible.filter(org.filter), important: [] }
+    : org.arrange(query.trim() ? visible : visible.filter(org.filter));
 
   const active = rooms.find((r) => r.id === activeId) || null;
   const filterItem = railItems.find((i) => i.filter === filter);
@@ -395,12 +433,26 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     };
     client.on(RoomEvent.Timeline, onTimeline);
     const offClick = window.relay.onNotificationClick((roomId) => {
+      if (roomId === BRIEFING_NOTIFICATION) { setBriefing(true); return; }
       setQuery('');
       openRoom(roomId);
     });
     const offReminder = onReminder('open-room', (roomId) => { setQuery(''); openRoom(roomId); });
     return () => { client.off(RoomEvent.Timeline, onTimeline); offClick(); offReminder(); };
   }, [client, openRoom]);
+
+  // ----- Triage nudges, the morning briefing, and AI refinement of Reply / Waiting -----
+  const roomsRef = useRef(rooms);
+  roomsRef.current = rooms;
+  useTriageNudges(roomsRef, myId);
+  useMorningBriefing(client, roomsRef);
+  // Let the AI look at doubtful chats a few seconds after things settle.
+  const triageKey = triageOn ? rooms.filter((r) => !r.archived).map((r) => r.last?.getId()).join() : '';
+  useEffect(() => {
+    if (!triageKey || !aiReady) return undefined;
+    const t = setTimeout(() => refineTriage(roomsRef.current.filter((r) => !r.archived), myId), 6000);
+    return () => clearTimeout(t);
+  }, [triageKey, myId, aiReady]);
 
   // ----- Keyboard shortcuts -----
   useEffect(() => {
@@ -581,9 +633,14 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           section={sectioned && !query ? section : null} setSection={setSection}
           sectionCounts={{ main: unreadMain, groups: groupsUnread }}
           onSearchMessages={(q) => setMsgSearch({ query: q })}
-          headerExtra={aiReady && aiPrefs(prefs).aiDigest && (
+          headerExtra={prefs.briefing !== false ? (
+            <button className="icon-btn briefing-btn" title="Good morning: what matters today" onClick={() => setBriefing(true)}><SunIcon size={17} /></button>
+          ) : aiReady && aiPrefs(prefs).aiDigest && (
             <button className="icon-btn ai-digest-btn" title="Daily digest: catch up on your busiest groups" onClick={() => setDigest(true)}><Spark size={16} /></button>
           )}
+          triage={triageActive}
+          setTriage={triageOn ? setTriage : null}
+          triageCounts={{ reply: triaged.reply.length, waiting: triaged.waiting.length }}
           onSummarize={aiReady ? (id) => { openRoom(id); setTimeout(() => requestSummary(id), 60); } : null}
         />
       )}
@@ -617,6 +674,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       {msgSearch && (
         <MessageSearch client={client} rooms={rooms} initial={msgSearch} onClose={() => setMsgSearch(null)}
           onJump={(roomId, eventId) => { setQuery(''); openRoom(roomId); setJump({ roomId, eventId, at: Date.now() }); }} />
+      )}
+      {briefing && (
+        <BriefingPanel client={client} rooms={rooms} canDigest={aiReady && aiPrefs(prefs).aiDigest}
+          onOpen={(id) => { setBriefing(false); setQuery(''); setView('inbox'); openRoom(id); }} onClose={() => setBriefing(false)} />
       )}
       {digest && (
         <DigestPanel client={client} rooms={rooms} onOpen={(id) => { setDigest(false); openRoom(id); }} onClose={() => setDigest(false)} />

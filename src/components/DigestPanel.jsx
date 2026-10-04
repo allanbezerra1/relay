@@ -8,7 +8,7 @@ import { aiPrefs, gatherMessages, digestPrompt, streamChat, shortModel } from '.
 
 const MAX_GROUPS = 6;
 
-function pickGroups(rooms) {
+export function pickGroups(rooms) {
   const unread = (r) => r.unread || (r.markedUnread ? 1 : 0);
   const groups = rooms.filter((r) => r.group && !r.invite && !r.archived && unread(r) > 0).sort((a, b) => unread(b) - unread(a));
   // Muted groups only fill in when there's little else going on.
@@ -16,8 +16,8 @@ function pickGroups(rooms) {
   return (loud.length >= 3 ? loud : [...loud, ...groups.filter((r) => r.muted)]).slice(0, MAX_GROUPS);
 }
 
-export default function DigestPanel({ client, rooms, onOpen, onClose }) {
-  const [items] = useState(() => pickGroups(rooms).map((r) => ({ r })));
+/** Summarizes the given groups one by one. Also used inline by the morning briefing. */
+export function useDigest(client, items) {
   const [state, setState] = useState(() => Object.fromEntries(items.map((it) => [it.r.id, { phase: 'waiting', text: '', error: null }])));
   const [model, setModel] = useState(() => aiPrefs().aiModel);
   const job = useRef(null);
@@ -56,13 +56,45 @@ export default function DigestPanel({ client, rooms, onOpen, onClose }) {
     return () => { cancelled = true; job.current?.cancel(); };
   }, [client, items]);
 
+  const doneCount = items.filter((it) => ['done', 'error', 'skipped'].includes(state[it.r.id].phase)).length;
+  return { state, model, doneCount };
+}
+
+export function DigestItems({ client, items, state, onOpen }) {
+  return items.map(({ r }, i) => {
+    const st = state[r.id];
+    return (
+      <article key={r.id} className={`digest-item is-${st.phase}`} style={{ '--i': i }}>
+        <div className="digest-item-head">
+          <Avatar src={roomAvatar(client, r.room, 72)} name={r.name} id={r.id} size={32} network={r.network} account={r.account} />
+          <div className="digest-item-title">
+            <b>{r.name}</b>
+            <small>{r.unread ? `${r.unread} unread` : 'marked as unread'}{r.highlight ? ' · mentions you' : ''}</small>
+          </div>
+          <button className="ai-btn" onClick={() => onOpen(r.id)}>Open</button>
+        </div>
+        <div className="digest-item-body">
+          {st.phase === 'waiting' && <span className="digest-wait">Waiting…</span>}
+          {st.phase === 'skipped' && <span className="digest-wait">Skipped</span>}
+          {st.phase === 'thinking' && <div className="ai-skeleton small"><i style={{ width: '70%' }} /><i style={{ width: '50%' }} /></div>}
+          {st.text && <AiText text={st.text} streaming={st.phase === 'streaming'} />}
+          {st.phase === 'error' && <div className="ai-error">{st.error}</div>}
+        </div>
+      </article>
+    );
+  });
+}
+
+export default function DigestPanel({ client, rooms, onOpen, onClose }) {
+  const [items] = useState(() => pickGroups(rooms).map((r) => ({ r })));
+  const { state, model, doneCount } = useDigest(client, items);
+
   useEffect(() => {
     const esc = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, [onClose]);
 
-  const doneCount = items.filter((it) => ['done', 'error', 'skipped'].includes(state[it.r.id].phase)).length;
   const today = new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -82,28 +114,7 @@ export default function DigestPanel({ client, rooms, onOpen, onClose }) {
         {items.length > 0 && <div className="digest-progress"><i style={{ width: `${(doneCount / items.length) * 100}%` }} /></div>}
         <div className="digest-list">
           {items.length === 0 && <div className="digest-empty">All caught up<br /><small>None of your groups have unread messages right now.</small></div>}
-          {items.map(({ r }, i) => {
-            const st = state[r.id];
-            return (
-              <article key={r.id} className={`digest-item is-${st.phase}`} style={{ '--i': i }}>
-                <div className="digest-item-head">
-                  <Avatar src={roomAvatar(client, r.room, 72)} name={r.name} id={r.id} size={32} network={r.network} account={r.account} />
-                  <div className="digest-item-title">
-                    <b>{r.name}</b>
-                    <small>{r.unread ? `${r.unread} unread` : 'marked as unread'}{r.highlight ? ' · mentions you' : ''}</small>
-                  </div>
-                  <button className="ai-btn" onClick={() => onOpen(r.id)}>Open</button>
-                </div>
-                <div className="digest-item-body">
-                  {st.phase === 'waiting' && <span className="digest-wait">Waiting…</span>}
-                  {st.phase === 'skipped' && <span className="digest-wait">Skipped</span>}
-                  {st.phase === 'thinking' && <div className="ai-skeleton small"><i style={{ width: '70%' }} /><i style={{ width: '50%' }} /></div>}
-                  {st.text && <AiText text={st.text} streaming={st.phase === 'streaming'} />}
-                  {st.phase === 'error' && <div className="ai-error">{st.error}</div>}
-                </div>
-              </article>
-            );
-          })}
+          <DigestItems client={client} items={items} state={state} onOpen={onOpen} />
         </div>
       </div>
     </div>

@@ -77,6 +77,8 @@ async function status(host) {
 const TASKS = {
   summary: { maxTokens: 900, temperature: 0.3 },
   translate: { maxTokens: 900, temperature: 0.1 },
+  triage: { maxTokens: 200, temperature: 0.1 },  // short JSON verdicts (Reply / Waiting)
+  briefing: { maxTokens: 700, temperature: 0.4 }, // the morning briefing
 };
 
 /**

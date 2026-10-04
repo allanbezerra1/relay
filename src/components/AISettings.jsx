@@ -30,7 +30,8 @@ const THRESHOLDS = [5, 10, 15, 30, 50];
 const LANGUAGES = ['en', 'es', 'pt-BR', 'pt-PT', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'he', 'hi', 'ja', 'ko', 'zh-CN', 'zh-TW'];
 
 export default function AISettings() {
-  const p = aiPrefs(usePrefs());
+  const all = usePrefs();
+  const p = aiPrefs(all);
   const [hostDraft, setHostDraft] = useState(p.aiHost === 'auto' ? '' : p.aiHost);
   const [status, setStatus] = useState(null); // null | 'testing' | result of ai:status
   const [models, setModels] = useState([]);
@@ -128,8 +129,12 @@ export default function AISettings() {
             ))}
           </div>
         </div>
-        <Toggle label="Daily digest" hint="A button in the chat list that summarizes, one by one, the groups with the most unread messages."
+        <Toggle label="Daily digest" hint="Summarizes, one by one, the groups with the most unread messages (from the Good morning panel, or its own button when that’s off)."
           checked={p.aiDigest} disabled={off} onChange={(v) => setPref('aiDigest', v)} />
+        <Toggle label="Check Reply and Waiting" hint="Double-checks which chats need an answer and writes a one-line reason under each."
+          checked={all.triageAI !== false} disabled={off || all.triage === false} onChange={(v) => setPref('triageAI', v)} />
+        <Toggle label="Write the Good morning briefing" hint="Otherwise the briefing is a plain list."
+          checked={all.briefingAI !== false} disabled={off || all.briefing === false} onChange={(v) => setPref('briefingAI', v)} />
       </Group>
 
       <Group title="Translation">

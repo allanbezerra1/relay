@@ -24,6 +24,13 @@ export const DEFAULTS = {
   smartCards: true,       // Pix, codes, tracking, dates and addresses as cards under messages
   privacyBlur: false,     // blur previews and messages while the window isn't focused
   privacyBlurNames: false, // …and the names too
+  triage: true,           // Reply / Waiting tabs in the chat list (src/triage.js)
+  triageAI: true,         // the local AI, when it's running, double-checks them and writes the reason
+  triageNudges: true,     // "Ana is waiting for your reply" after a day without an answer
+  briefing: true,         // "Good morning" panel (src/briefing.js)
+  briefingNotify: true,   // …announced with a notification in the morning
+  briefingAI: true,       // …written up by the local AI when it's running
+  briefingHour: 7,        // from this hour on (until 2pm), the first time Relay is running
   // Notifications
   notifications: true,
   notifPreview: true,
