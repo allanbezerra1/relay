@@ -14,6 +14,8 @@ import { smartItems } from '../smart.js';
 import { getPrefs } from '../prefs.js';
 import { useMedia, copyImage } from '../media.js';
 import { saveSticker, removeSticker, findSaved } from '../stickers.js';
+import PollCard from './PollCard.jsx';
+import { pollOf, expiresIn, timerLabel } from '../whatsapp-power.js';
 import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
   senderName, previewText, formatBytes, memberAvatar, cleanName, callAction,
@@ -106,12 +108,13 @@ function Linkified({ text, mentions, me }) {
 }
 
 /** Time + delivery ticks, shown inside the bubble like WhatsApp. */
-function Meta({ time, mine, receipt: receiptInfo, edited, overlay, starred }) {
+function Meta({ time, mine, receipt: receiptInfo, edited, overlay, starred, expires }) {
   const receipt = receiptInfo?.state ?? receiptInfo;
   return (
     <span className={`meta ${overlay ? 'on-media' : ''}`} title={mine && receiptInfo?.title ? receiptInfo.title : undefined}>
       {starred && <svg className="meta-star" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d={I.star} /></svg>}
       {edited && <span className="meta-edited">edited</span>}
+      {expires > 0 && <span className="meta-expire" title={`Disappearing message: gone ${timerLabel(expires)} after it was sent`}>⏱</span>}
       <span>{time}</span>
       {mine && receipt === 'sending' && (
         <svg className="tick" viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7Z" /></svg>
@@ -343,6 +346,9 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta, onToast }) {
   const call = callAction(ev);
   if (call) return <CallNotice video={call.video} mine={mine} roomId={callsAvailable() ? room.roomId : null} name={room.name} onError={onToast} />;
 
+  const poll = pollOf(ev, content);
+  if (poll) return <PollCard client={client} room={room} ev={ev} poll={poll} mine={mine} />;
+
   switch (content.msgtype) {
     case MsgType.Image: return <ImageBody client={client} content={content} onOpen={(x) => onOpenImage({ ...x, eventId: ev.getId() })} meta={meta} />;
     case MsgType.Video: return <VideoBody client={client} content={content} meta={meta} />;
@@ -479,7 +485,9 @@ function Message({
   const canEdit = mine && !ev.isRedacted() && content.msgtype === MsgType.Text && !ev.status;
   const time = new Date(ev.getTs()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const imageOverlay = ((isImage && !isSticker) || content.msgtype === MsgType.Video) && !hasCaption(content) && !replyId;
-  const meta = <Meta time={time} mine={mine} receipt={failed ? null : receipt} edited={edited && !ev.isRedacted()} overlay={imageOverlay} starred={starred} />;
+  const meta = <Meta time={time} mine={mine} receipt={failed ? null : receipt} edited={edited && !ev.isRedacted()} overlay={imageOverlay} starred={starred}
+    expires={ev.isRedacted() ? 0 : expiresIn(room, ev, content)} />;
+  const isPoll = !ev.isRedacted() && !!pollOf(ev, content);
   const copyable = content.msgtype === MsgType.Text || content.msgtype === MsgType.Notice;
   // What "Translate" works on: people's words only, never bridge notices or view once placeholders.
   const aiReady = useAiReadyQuiet();
@@ -501,11 +509,11 @@ function Message({
   // Instagram shares/story replies already render as their own card: no link preview on top.
   const igMsg = content.msgtype === MsgType.Text && !!(igParse(content.body) || igStoryContext(content.formatted_body));
   const link = (content.body || '').match(URL_RE)?.[0];
-  const previewLink = igMsg ? null : link;
+  const previewLink = igMsg || isPoll ? null : link;
   // A message that is only a link shows just the preview card (WhatsApp-style), not the long URL.
   const linkOnly = !!previewLink && content.msgtype === MsgType.Text && !replyId && stripReplyFallback(content.body || '').trim() === link;
   // Smart cards (Pix, codes, tracking, dates, addresses) under text messages.
-  const smartOn = copyable && !ev.isRedacted() && getPrefs().smartCards !== false;
+  const smartOn = copyable && !isPoll && !ev.isRedacted() && getPrefs().smartCards !== false;
   const smartText = smartOn ? stripReplyFallback(content.body || '') : '';
   // A Pix "copia e cola" is a wall of digits: the card shows it (and copies it), the text doesn't.
   const pix = smartOn && content.msgtype === MsgType.Text ? smartItems(smartText, ev.getTs()).find((x) => x.type === 'pix') : null;
@@ -588,6 +596,7 @@ function Message({
             isMedia && 'media-bubble',
             isSticker && 'sticker-bubble',
             isAudio && 'audio-bubble',
+            isPoll && 'poll-bubble',
             bigEmoji && 'big-emoji',
             ev.isRedacted() && 'redacted',
           ].filter(Boolean).join(' ')}>

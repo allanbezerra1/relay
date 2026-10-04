@@ -369,6 +369,7 @@ ipcMain.handle('local:cookieLogin', (_e, params) => cookieLogin(params));
 ipcMain.handle('local:addNetwork', (_e, name) => local.addNetwork(name, (step, message) => send('local:progress', { step, message })));
 ipcMain.handle('local:openDirectChat', (_e, userId, loginId) => local.openDirectChat(userId, loginId));
 ipcMain.handle('local:bridgeCommand', (_e, name, command) => local.bridgeCommand(name, command));
+ipcMain.handle('local:waPower', (_e, op, args) => local.whatsappPower(op, args).catch((err) => ({ ok: false, error: err.message })));
 ipcMain.handle('local:restartBridge', (_e, name) => local.restartBridge(name));
 ipcMain.handle('local:openLogs', () => shell.openPath(local.logsDir()));
 ipcMain.on('local:discordLogin', () => local.discordLogin((msg) => send('local:discord', msg)));

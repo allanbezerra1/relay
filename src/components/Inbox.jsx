@@ -20,6 +20,7 @@ import NetIcon from './NetIcon.jsx';
 import { useContextMenu } from './ContextMenu.jsx';
 import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
+import BroadcastDialog from './Broadcast.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
 import { ask, notice } from '../dialogs.jsx';
@@ -168,6 +169,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [switcher, setSwitcher] = useState(false);
   const [settings, setSettings] = useState(null); // null | section id
   const [newGroup, setNewGroup] = useState(false);
+  const [broadcast, setBroadcast] = useState(false);
   const [inboxToast, setInboxToast] = useState(null);
   const [msgSearch, setMsgSearch] = useState(null); // null | { query, roomId }
   const [jump, setJump] = useState(null); // { roomId, eventId, at? }: open a chat at a message (message search, Ask Relay)
@@ -547,6 +549,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         notice(`Couldn’t open a private chat: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`);
       }
     },
+    openRoom: (id) => { setQuery(''); setFilter('all'); setView('inbox'); openRoom(id); },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
     toggleImportant: (r) => (r.importantGroup ? client.deleteRoomTag(r.id, TAG_IMPORTANT) : client.setRoomTag(r.id, TAG_IMPORTANT, { order: 0.5 })),
     // `ask: false` for bulk actions (one confirmation for all).
@@ -674,6 +677,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           triageCounts={{ reply: triaged.reply.length, waiting: triaged.waiting.length }}
           onSummarize={aiReady ? (id) => { openRoom(id); setTimeout(() => requestSummary(id), 60); } : null}
           onAsk={askReady ? (q) => setAsking({ q }) : null}
+          onBroadcast={() => setBroadcast(true)}
         />
       )}
 
@@ -735,6 +739,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             if (warning) { setInboxToast(warning); setTimeout(() => setInboxToast(null), 4000); }
           }} />
       )}
+      {broadcast && <BroadcastDialog client={client} rooms={rooms} onClose={() => setBroadcast(false)} />}
       {inboxToast && <div className="toast">{inboxToast}</div>}
       {org.overlays}
     </div>

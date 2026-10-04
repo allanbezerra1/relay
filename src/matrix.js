@@ -187,7 +187,7 @@ export function peopleCount(room) {
   return room.getJoinedMembers().filter((m) => !BOT.test(m.userId)).length;
 }
 
-const DISPLAYABLE = new Set([EventType.RoomMessage, EventType.Sticker, EventType.RoomMessageEncrypted]);
+const DISPLAYABLE = new Set([EventType.RoomMessage, EventType.Sticker, EventType.RoomMessageEncrypted, 'org.matrix.msc3381.poll.start']);
 
 /** True for events that show up as bubbles in the timeline. */
 export function isDisplayable(ev) {
@@ -216,7 +216,9 @@ export function previewText(room, ev, myUserId) {
   const c = ev.getContent();
   const who = ev.getSender() === myUserId ? 'You' : null;
   let text;
-  if (ev.getType() === EventType.Sticker) text = 'Sticker';
+  const poll = c['org.matrix.msc3381.poll.start'];
+  if (poll) text = `📊 ${poll.question?.['org.matrix.msc1767.text'] || poll.question?.body || 'Poll'}`;
+  else if (ev.getType() === EventType.Sticker) text = 'Sticker';
   else if (callAction(ev)) text = callAction(ev).video ? '🎥 Video call' : '📞 Voice call';
   else if (c['dev.relay.view_once'] || (c.msgtype === MsgType.Notice && /view once message/i.test(c.body || ''))) text = '① View once message';
   else switch (c.msgtype) {

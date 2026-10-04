@@ -895,8 +895,6 @@ html, body, #root { overflow: hidden; }
 .label-menu input { width: 100%; margin-top: 4px; height: 34px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); outline: none; font: inherit; font-size: 13px; user-select: text; }
 .label-check { margin-left: auto; color: var(--accent-2); font-weight: 800; }
 .label-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.ip-timer { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
-.ip-timer select { height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 0 10px; font: inherit; font-size: 13.5px; }
 .ip-bottom { display: flex; border-top: 1px solid var(--line); padding: 6px; gap: 4px; }
 .ip-bottom button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: none; color: var(--text-2); padding: 7px 0; border-radius: 10px; font-size: 11px; }
 .ip-bottom button:hover { background: var(--hover); color: var(--text); }

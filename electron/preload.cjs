@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('relay', {
     addNetwork: (name) => ipcRenderer.invoke('local:addNetwork', name),
     openDirectChat: (userId, loginId) => ipcRenderer.invoke('local:openDirectChat', userId, loginId),
     bridgeCommand: (name, command) => ipcRenderer.invoke('local:bridgeCommand', name, command),
+    waPower: (op, args) => ipcRenderer.invoke('local:waPower', op, args),
     restartBridge: (name) => ipcRenderer.invoke('local:restartBridge', name),
     openLogs: () => ipcRenderer.invoke('local:openLogs'),
     discordLogin: () => ipcRenderer.send('local:discordLogin'),
