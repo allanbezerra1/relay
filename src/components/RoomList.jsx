@@ -6,6 +6,7 @@ import MiniPlayer from './MiniPlayer.jsx';
 import UpdateBanner from './UpdateBanner.jsx';
 import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
+import { ask } from '../dialogs.jsx';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -20,6 +21,9 @@ const ICONS = {
   open: 'M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7ZM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7Z',
   unread: 'M20 6.54v10.91c0 .3-.24.55-.55.55H4.55A.55.55 0 0 1 4 17.45V6.55c0-.3.25-.55.55-.55h10.03a4 4 0 0 0 5.42.54ZM18 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
   copy: 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
+  close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z',
+  more: 'M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
+  check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z',
   leave: 'M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59ZM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z',
 };
 const Ico = ({ d, size = 17 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"><path fill="currentColor" d={d} /></svg>;
@@ -131,6 +135,28 @@ export default function RoomList({
   const allArchived = picked.length && picked.every((r) => r.archived);
   const allMuted = picked.length && picked.every((r) => r.muted);
   const allPinned = picked.length && picked.every((r) => r.pinned);
+  const [working, setWorking] = useState(null); // { done, total } while leaving several chats
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => { if (!selecting) setMoreOpen(false); }, [selecting]);
+
+  // Leave several chats at once: one confirmation listing them, progress in the dock.
+  const leaveSelected = async () => {
+    const list = picked;
+    if (!(await ask({
+      title: `Leave ${list.length} ${list.length > 1 ? 'chats' : 'chat'}?`,
+      body: 'This can’t be undone from Relay.',
+      list: list.map((r) => r.name), ok: `Leave ${list.length}`, danger: true, icon: 'leave',
+    }))) return;
+    setWorking({ done: 0, total: list.length });
+    let done = 0;
+    for (const r of list) {
+      await actions.leave(r, { ask: false }).catch(() => {});
+      setWorking({ done: ++done, total: list.length });
+      await new Promise((res) => setTimeout(res, 400)); // gentle with the bridges
+    }
+    setWorking(null);
+    clearSelection();
+  };
 
   const menuItems = (r) => [
     { label: 'Open', icon: <Ico d={ICONS.open} size={15} />, run: () => onOpen(r.id) },
@@ -197,38 +223,14 @@ export default function RoomList({
       <SyncBar profiles={profiles} />
 
       {selecting && (
-        <div className="bulk-bar">
-          <div className="bulk-top">
-            <span className="bulk-count">{selected.size ? `${selected.size} selected` : 'Select chats'}</span>
-            <button className="bulk-link" onClick={() => setSelected(new Set(allRows.map((r) => r.id)))}>Select all</button>
-            <button className="bulk-link" onClick={clearSelection}>Done</button>
-          </div>
-          {selected.size > 0 && (
-            <div className="bulk-actions">
-              <button title="Mark as read" onClick={() => bulk((r) => actions.markRead(r))}><Ico d={ICONS.read} /><span>Read</span></button>
-              <button title={allArchived ? 'Move to inbox' : 'Archive'} onClick={async () => { await bulk((r) => (allArchived ? r.archived : !r.archived) && actions.toggleArchive(r)); clearSelection(); }}>
-                <Ico d={ICONS.archive} /><span>{allArchived ? 'Unarchive' : 'Archive'}</span></button>
-              <button title={allMuted ? 'Unmute' : 'Mute'} onClick={() => bulk((r) => (allMuted ? r.muted : !r.muted) && actions.toggleMute(r))}>
-                <Ico d={ICONS.mute} /><span>{allMuted ? 'Unmute' : 'Mute'}</span></button>
-              <button title={allPinned ? 'Unpin' : 'Pin'} onClick={() => bulk((r) => (allPinned ? r.pinned : !r.pinned) && actions.togglePin(r))}>
-                <Ico d={ICONS.pin} /><span>{allPinned ? 'Unpin' : 'Pin'}</span></button>
-              <div className="bulk-label-wrap">
-                <button title="Add to a label" onClick={() => setLabelPick(!labelPick)}><Ico d={ICONS.label} /><span>Label</span></button>
-                {labelPick && (
-                  <div className="label-menu bulk">
-                    {labels.length ? labels.map((l) => {
-                      const all = picked.every((r) => r.labels.some((x) => x.id === l.id));
-                      return (
-                        <button key={l.id} onClick={() => bulk((r) => toggleLabel(client, r.room, l, !all))}>
-                          <span className="label-dot" style={{ background: l.color }} />{l.name}<span className="label-check">{all ? '✓' : ''}</span>
-                        </button>
-                      );
-                    }) : <div className="ip-empty">Create labels from a chat’s details panel.</div>}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+        <div className="sel-head">
+          <button className="sel-close" onClick={clearSelection} title="Done (Esc)"><Ico d={ICONS.close} size={18} /></button>
+          <span className="sel-count">
+            {selected.size ? <><b>{selected.size}</b> selected</> : 'Click chats to select them'}
+          </span>
+          <button className="sel-all" onClick={() => (selected.size === allRows.length ? setSelected(new Set()) : setSelected(new Set(allRows.map((r) => r.id))))}>
+            {selected.size === allRows.length && allRows.length ? 'Clear' : 'Select all'}
+          </button>
         </div>
       )}
 
@@ -255,14 +257,14 @@ export default function RoomList({
           return (
             <div
               key={r.id}
-              className={`room ${r.id === activeId && !selecting ? 'active' : ''} ${unread ? 'unread' : ''} ${selected.has(r.id) ? 'selected' : ''} ${dropId === r.id ? 'drop-target' : ''}`}
+              className={`room ${r.id === activeId && !selecting ? 'active' : ''} ${unread ? 'unread' : ''} ${selecting ? 'selecting' : ''} ${selected.has(r.id) ? 'selected' : ''} ${dropId === r.id ? 'drop-target' : ''}`}
               onClick={(e) => clickRow(e, r)}
               {...dropProps(r)}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, r }); }}
             >
+              {selecting && <span className={`sel-box ${selected.has(r.id) ? 'on' : ''}`} aria-hidden="true"><Ico d={ICONS.check} size={14} /></span>}
               <div className="avatar-wrap">
                 <Avatar src={roomAvatar(client, r.room)} name={r.name} id={r.id} size={44} network={r.network} account={r.account} />
-                {selecting && <span className={`sel-check ${selected.has(r.id) ? 'on' : ''}`}>{selected.has(r.id) ? '✓' : ''}</span>}
               </div>
               <div className="room-body">
                 <div className="room-top">
@@ -302,6 +304,44 @@ export default function RoomList({
       <UpdateBanner />
       <MiniPlayer />
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.r)} onClose={() => setMenu(null)} />}
+      {selecting && selected.size > 0 && (
+        <div className="sel-dock" role="toolbar" aria-label="Actions on the selected chats">
+          {working ? (
+            <div className="sel-working">
+              <span className="sel-spin" />
+              <span>Leaving {working.done}/{working.total}</span>
+              <i className="sel-progress"><b style={{ width: `${Math.round((working.done / working.total) * 100)}%` }} /></i>
+            </div>
+          ) : (
+            <>
+              <button onClick={async () => { await bulk((r) => actions.markRead(r)); clearSelection(); }} title="Mark as read"><Ico d={ICONS.read} size={19} /><span>Read</span></button>
+              <button onClick={async () => { await bulk((r) => (allArchived ? r.archived : !r.archived) && actions.toggleArchive(r)); clearSelection(); }} title={allArchived ? 'Move to inbox' : 'Archive'}>
+                <Ico d={ICONS.archive} size={19} /><span>{allArchived ? 'Unarchive' : 'Archive'}</span></button>
+              <button onClick={() => bulk((r) => (allMuted ? r.muted : !r.muted) && actions.toggleMute(r))} title={allMuted ? 'Unmute' : 'Mute'}>
+                <Ico d={ICONS.mute} size={19} /><span>{allMuted ? 'Unmute' : 'Mute'}</span></button>
+              <button className="sel-danger" onClick={leaveSelected} title="Leave the selected chats"><Ico d={ICONS.leave} size={19} /><span>Leave</span></button>
+              <div className="sel-more-wrap">
+                <button className={moreOpen ? 'on' : ''} onClick={() => setMoreOpen(!moreOpen)} title="More actions"><Ico d={ICONS.more} size={19} /><span>More</span></button>
+                {moreOpen && (
+                  <div className="sel-more" onMouseLeave={() => setMoreOpen(false)}>
+                    <button onClick={() => { bulk((r) => (allPinned ? r.pinned : !r.pinned) && actions.togglePin(r)); setMoreOpen(false); }}><Ico d={ICONS.pin} size={16} />{allPinned ? 'Unpin' : 'Pin to top'}</button>
+                    <button onClick={() => { bulk((r) => (r.unread || r.markedUnread ? null : actions.markUnread(r))); setMoreOpen(false); }}><Ico d={ICONS.unread} size={16} />Mark as unread</button>
+                    <div className="sel-more-sep">Labels</div>
+                    {labels.length ? labels.map((l) => {
+                      const all = picked.every((r) => r.labels.some((x) => x.id === l.id));
+                      return (
+                        <button key={l.id} onClick={() => bulk((r) => toggleLabel(client, r.room, l, !all))}>
+                          <span className="label-dot" style={{ background: l.color }} />{l.name}<span className="label-check">{all ? '✓' : ''}</span>
+                        </button>
+                      );
+                    }) : <div className="sel-more-empty">Create labels from a chat’s details panel.</div>}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
