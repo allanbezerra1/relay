@@ -178,23 +178,23 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const clearStaged = () => setStaged((s) => { s.forEach((x) => x.preview && URL.revokeObjectURL(x.preview)); return []; });
   useEffect(() => clearStaged, [room.roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sendStaged = async (caption, asDocument, replyTo, viewOnce = false) => {
-    const items = staged;
+  // items: [{ file, caption }] in send order, from the media tray.
+  const sendStaged = async (items, asDocument, replyTo, viewOnce = false) => {
     setStaged([]);
-    await sendFiles(items.map((x) => x.file), caption, asDocument, replyTo, viewOnce);
+    await sendFiles(items, asDocument, replyTo, viewOnce);
     items.forEach((x) => x.preview && URL.revokeObjectURL(x.preview));
   };
 
-  const sendFiles = async (files, caption = '', asDocument = false, replyTo = null, viewOnce = false) => {
-    for (const [i, file] of files.entries()) {
+  const sendFiles = async (items, asDocument = false, replyTo = null, viewOnce = false) => {
+    for (const [i, { file, caption = '' }] of items.entries()) {
       const id = Math.random().toString(36).slice(2);
       setUploads((u) => [...u, { id, name: file.name, progress: 0 }]);
       try {
-        // Caption goes on the first file (bridges put `body` ≠ `filename` as the caption).
+        // Each file carries its own caption (bridges put `body` ≠ `filename` as the caption).
         const extra = {};
         if (asDocument) extra.msgtype = 'm.file';
         if (viewOnce && /^(image|video)\//.test(file.type)) extra['dev.relay.view_once'] = true; // see the WhatsApp bridge patch
-        if (i === 0 && caption.trim()) extra.body = caption.trim();
+        if (caption.trim()) extra.body = caption.trim();
         const content = await uploadAttachment(client, room, file, (p) =>
           setUploads((u) => u.map((x) => (x.id === id ? { ...x, progress: p } : x))), extra);
         if (i === 0 && replyTo) content['m.relates_to'] = { 'm.in_reply_to': { event_id: replyTo.getId() } };
@@ -492,6 +492,7 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
         onUnstage={unstage}
         onClearStaged={clearStaged}
         onSendStaged={sendStaged}
+        onStagedChange={setStaged}
         onVoice={sendVoice}
       />
       )}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../matrix.js';
 import { useStickers, importStickers, removeSticker, recentStickers } from '../stickers.js';
 
-const CATEGORIES = [
+export const CATEGORIES = [
   ['Recent', '🕘', null],
   ['Smileys', '😀', '😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😮‍💨 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 🥹 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 💩 🤡 👻 👽 🤖'],
   ['Gestures', '👍', '👍 👎 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🫡 👏 🙌 🫶 👐 🤲 🤝 🙏 ✍️ 💪 🦾 🫵 👀 👁️ 🧠 🫀 👄 💋 🙋 🙆 🙅 🤷 🤦 🙇 💁 🧑‍💻 🏃 💃 🕺'],
