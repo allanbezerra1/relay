@@ -11,6 +11,7 @@ export const DEFAULTS = {
   density: 'comfortable', // comfortable | compact
   textSize: 'md',         // sm | md | lg
   wallpaper: { id: 'none', dim: 0, blur: 0 }, // default chat wallpaper, see wallpapers.js
+  motion: true,           // micro-animations (also off when the OS asks for reduced motion)
   // Chats
   enterToSend: true,
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it
@@ -78,6 +79,7 @@ export function applyAppearance() {
   else root.dataset.theme = theme;
   root.dataset.preset = prefs.preset || 'classic';
   root.dataset.style = !prefs.preset || prefs.preset === 'classic' ? 'classic' : 'glass';
+  root.dataset.motion = prefs.motion === false ? 'off' : 'on';
   root.dataset.density = prefs.density;
   root.dataset.text = prefs.textSize;
   const acc = ACCENTS[prefs.accent] || ACCENTS.violet;

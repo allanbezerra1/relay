@@ -223,6 +223,10 @@ function Appearance() {
         <p className="pane-text muted">Applies to every chat. To change just one, open that chat’s details.</p>
         <DefaultWallpaperPicker />
       </Group>
+      <Group title="Details">
+        <Toggle label="Animations" hint="Reactions, new messages and switching chats move smoothly. If your system asks for reduced motion, they stay off."
+          checked={p.motion !== false} onChange={(v) => setPref('motion', v)} />
+      </Group>
     </>
   );
 }

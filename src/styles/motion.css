@@ -1,0 +1,70 @@
+/* ======================================================================
+   Micro-animations (see src/fx.js for the JS-driven ones).
+   Everything here is off with Settings → Appearance → Animations off
+   (<html data-motion="off">) or when the OS asks for reduced motion.
+   ====================================================================== */
+
+/* Messages no longer all animate on mount (that replayed on every chat open and
+   every page of history); fx.js slides in only the ones that arrive live. */
+.timeline-inner > .msg { animation: none; }
+
+/* Switching chats: the conversation glides in. */
+@keyframes chat-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes chat-head-in { from { opacity: 0; transform: translateY(-6px); } }
+.chat-main > .timeline > .timeline-inner { animation: chat-in 0.34s cubic-bezier(.2, .8, .2, 1) both; }
+.chat-main > .chat-float .float-id { animation: chat-head-in 0.3s cubic-bezier(.2, .8, .2, 1) both; }
+.info-panel .ip-scroll { animation: chat-in 0.36s 0.04s cubic-bezier(.2, .8, .2, 1) both; }
+
+/* Press feedback: a quick, springy squeeze. */
+.icon-btn, .ip-icon, .round-btn, .chips button, .segmented button, .swatch, .theme-card, .preset-card, .wp-tile,
+.msg-tools button, .reactions button, .ip-bottom button, .float-panel-btn, .call-btn, .tx-link, .reply-chip,
+.ip-link, .ip-more, .wp-current, .settings-nav button, .pin-tile, .float-id {
+  transition-property: transform, background, background-color, color, box-shadow, border-color, opacity, filter;
+  transition-duration: 0.18s;
+  transition-timing-function: cubic-bezier(.2, 1.3, .4, 1);
+}
+/* (Only with motion on: these transforms are pure decoration.) */
+:root:not([data-motion="off"]) :is(.icon-btn, .ip-icon, .chips button, .segmented button, .swatch, .theme-card, .msg-tools button,
+  .ip-bottom button, .float-panel-btn, .tx-link, .reply-chip, .ip-more, .settings-nav button, .pin-tile, .wp-current):active:not(:disabled) {
+  transform: scale(0.93); transition-duration: 0.08s;
+}
+:root:not([data-motion="off"]) :is(.reactions button:active, .preset-card:active .preset-prev, .wp-tile:active .wp-mini) { transform: scale(0.9); transition-duration: 0.08s; }
+:root:not([data-motion="off"]) .round-btn:active:not(:disabled) { transform: scale(0.88) !important; transition-duration: 0.08s; }
+:root:not([data-motion="off"]) .msg-tools button.emoji:hover { transform: translateY(-2px) scale(1.22); }
+:root:not([data-motion="off"]) .swatch:hover { transform: scale(1.1); }
+
+/* Reaction chips: a gentle hover lift. */
+.reactions button { transition: transform 0.2s cubic-bezier(.2, 1.4, .4, 1), box-shadow 0.2s, background 0.15s; }
+:root:not([data-motion="off"]) .reactions button:hover { transform: translateY(-1px) scale(1.05); }
+
+/* The reaction burst (fx.js) */
+.fx-burst { position: fixed; z-index: 3000; width: 0; height: 0; pointer-events: none; }
+.fx-burst > span { position: absolute; left: 0; top: 0; line-height: 1; will-change: transform, opacity; }
+.fx-emoji { font-size: 34px; filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35)); }
+.fx-mini { font-size: 14px; }
+.fx-spark {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 20%, var(--accent-2) 45%, transparent 72%);
+  box-shadow: 0 0 10px var(--accent-2);
+}
+.fx-ring {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent-2) 80%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-2) 60%, transparent), inset 0 0 12px color-mix(in srgb, var(--accent-2) 40%, transparent);
+}
+
+/* Unread counters and the typing dots get slightly more character. */
+.count, .rail-count { transform-origin: center; }
+.count.hl, .rail-count { will-change: transform; }
+
+/* ---------- Motion off ---------- */
+/* Decorative motion stops; spinners and progress keep moving (they carry information). */
+:root[data-motion="off"] body::before, :root[data-motion="off"] body::after,
+:root[data-motion="off"] .chat-main > .timeline > .timeline-inner, :root[data-motion="off"] .chat-main > .chat-float .float-id,
+:root[data-motion="off"] .info-panel .ip-scroll, :root[data-motion="off"] .preset-prev .pp-glow,
+:root[data-motion="off"] .lightbox img, :root[data-motion="off"] .call-pill, :root[data-motion="off"] .msg { animation: none !important; }
+:root[data-motion="off"] .fx-burst { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .chat-main > .timeline > .timeline-inner, .chat-main > .chat-float .float-id, .info-panel .ip-scroll { animation: none; }
+  .fx-burst { display: none; }
+}
