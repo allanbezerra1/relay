@@ -71,6 +71,7 @@ export default function RoomList({
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
   typeFilter, setTypeFilter, onDropFiles, onNewGroup,
   folderBar, topSection, menuExtras, emptyText, // folders, "Important", snooze (Organize.jsx)
+  section, setSection, sectionCounts = {}, // "Main" / "Groups" tabs (null when off)
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -165,6 +166,7 @@ export default function RoomList({
     { label: r.pinned ? 'Unpin' : 'Pin to top', icon: <Ico d={ICONS.pin} size={15} />, run: () => actions.togglePin(r) },
     { label: r.muted ? 'Unmute' : 'Mute', icon: <Ico d={ICONS.mute} size={15} />, run: () => actions.toggleMute(r) },
     { label: r.archived ? 'Move to inbox' : 'Archive', icon: <Ico d={ICONS.archive} size={15} />, run: () => actions.toggleArchive(r) },
+    ...(r.group && actions.toggleImportant ? [{ label: r.importantGroup ? 'Remove from important groups' : '⭐ Mark as an important group', icon: <Ico d={ICONS.pin} size={15} />, run: () => actions.toggleImportant(r) }] : []),
     r.unread || r.markedUnread
       ? { label: 'Mark as read', icon: <Ico d={ICONS.read} size={15} />, run: () => actions.markRead(r) }
       : { label: 'Mark as unread', icon: <Ico d={ICONS.unread} size={15} />, run: () => actions.markUnread(r) },
@@ -189,7 +191,27 @@ export default function RoomList({
               onClick={() => (selecting ? clearSelection() : setSelectMode(true))}><Ico d={ICONS.select} /></button>
           </div>
         </div>
+        {section && (
+          <div className="sec-tabs" role="tablist">
+            <button role="tab" aria-selected={section === 'main'} className={section === 'main' ? 'on' : ''} onClick={() => setSection('main')}>
+              Main{sectionCounts.main ? <span>{sectionCounts.main}</span> : null}
+            </button>
+            <button role="tab" aria-selected={section === 'groups'} className={section === 'groups' ? 'on' : ''} onClick={() => setSection('groups')}>
+              Groups{sectionCounts.groups ? <span>{sectionCounts.groups}</span> : null}
+            </button>
+          </div>
+        )}
         {folderBar}
+        {section === 'groups' && rooms.some((r) => r.unread || r.markedUnread) && (
+          <div className="sec-tools">
+            <button onClick={async () => {
+              const unread = rooms.filter((r) => r.unread || r.markedUnread);
+              if (unread.length > 5 && !window.confirm(`Mark ${unread.length} groups as read?`)) return;
+              await Promise.all(unread.map((r) => Promise.resolve(actions.markRead(r)).catch(() => {})));
+            }}>Read all groups</button>
+            <button onClick={() => setSelectMode(true)}>Select…</button>
+          </div>
+        )}
         <div className={`search ${showSearch || query ? '' : 'collapsed'}`}>
           <Ico d={ICONS.search} size={15} />
           <input
@@ -279,6 +301,8 @@ export default function RoomList({
                   )}
                   {r.pinned && <span className="pin" title="Pinned">📌</span>}
                   {r.snoozeLabel && <span className="snooze-chip" title="Comes back to the inbox">⏰ {r.snoozeLabel}</span>}
+                  {r.importantGroup && <span className="imp-star" title="Important group">⭐</span>}
+                  {r.archived && r.group && <span className="arch-tag" title="Archived">archived</span>}
                   <span className="room-time">{r.ts ? formatTime(r.ts) : ''}</span>
                 </div>
                 <div className="room-bottom">

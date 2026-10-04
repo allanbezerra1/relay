@@ -102,6 +102,10 @@ function General({ client, isLocal }) {
         <Toggle label="Show message previews in the chat list" checked={p.showPreviews} onChange={(v) => setPref('showPreviews', v)} />
         <Toggle label="Important on top" hint="Unread one-to-one chats and messages that mention you get their own group at the top of the list."
           checked={p.importantSection !== false} onChange={(v) => setPref('importantSection', v)} />
+        <Toggle label="Groups in their own tab" hint="“Main” keeps one-to-one chats and the groups you flag ⭐ (right-click a group); “Groups” has every group, archived or not."
+          checked={p.splitGroups} onChange={(v) => setPref('splitGroups', v)} />
+        <Toggle label="Quiet groups" hint="Groups not flagged ⭐ only notify you when they mention you." disabled={!p.splitGroups}
+          checked={p.quietGroups} onChange={(v) => setPref('quietGroups', v)} />
         <Toggle label="Move archived chats back to the inbox on new messages" hint="Muted chats always stay archived." checked={p.autoUnarchive} onChange={(v) => setPref('autoUnarchive', v)} />
       </Group>
       {isLocal && (

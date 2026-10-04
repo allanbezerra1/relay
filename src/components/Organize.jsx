@@ -356,6 +356,7 @@ export function useOrganize({ client, rooms, profiles, labels, activeId, openRoo
 
   return {
     filter, arrange, isSnoozed, tabs, important, menuExtras, overlays,
+    folderActive: !!folder,
     title: view === 'snoozed' ? 'Snoozed' : null,
     emptyText: view === 'snoozed' ? 'No snoozed chats.' : folder ? 'No chats in this folder.' : null,
   };

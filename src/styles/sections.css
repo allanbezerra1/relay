@@ -1,0 +1,32 @@
+/* Glass tokens used below, for the Classic look (the glass styles define their own). */
+:root:not([data-style="glass"]) {
+  --glass-strong: var(--panel-2, var(--panel)); --glass-line: var(--line); --glass-line-2: var(--line);
+  --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent);
+  --grad: linear-gradient(135deg, var(--accent-2), var(--accent));
+}
+
+/* ---------- "Main" / "Groups" tabs ---------- */
+.sec-tabs {
+  display: flex; gap: 4px; margin: 10px 0 2px; padding: 4px; border-radius: 14px;
+  background: var(--tint); border: 1px solid var(--glass-line);
+}
+.sec-tabs button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; border: 0; border-radius: 10px;
+  background: none; color: var(--text-2); font-weight: 650; font-size: 13px; transition: background 0.15s, color 0.15s, box-shadow 0.2s;
+}
+.sec-tabs button:hover { color: var(--text); }
+.sec-tabs button.on { background: var(--glass-strong); color: var(--text); box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--glass-line-2); }
+.sec-tabs button span {
+  min-width: 18px; height: 18px; padding: 0 6px; border-radius: 9px; display: inline-grid; place-items: center;
+  font-size: 11px; font-weight: 700; background: var(--grad); color: #fff;
+}
+.sec-tabs button:not(.on) span { background: color-mix(in srgb, var(--text) 22%, transparent); color: var(--text); }
+.sec-tools { display: flex; gap: 6px; margin: 6px 0 0; }
+.sec-tools button {
+  flex: 1; height: 28px; border-radius: 9px; border: 1px solid var(--glass-line); background: var(--tint);
+  color: var(--text-2); font-size: 12px; font-weight: 600; transition: background 0.15s, color 0.15s;
+}
+.sec-tools button:hover { background: var(--tint-2); color: var(--text); }
+.imp-star { font-size: 11px; margin-left: 2px; }
+.arch-tag { font-size: 10px; font-weight: 600; color: var(--text-3); border: 1px solid var(--glass-line-2); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+
