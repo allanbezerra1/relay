@@ -1,0 +1,29 @@
+/* ---------- Instagram shares and story replies (IgCards.jsx) ---------- */
+.ig-card { display: flex; flex-direction: column; gap: 6px; min-width: 220px; max-width: 340px; padding: 2px 0; }
+.ig-head { display: flex; align-items: center; gap: 8px; }
+.ig-head b { font-size: 13px; font-weight: 650; }
+.ig-at { color: var(--accent-2); }
+.msg.mine .ig-at { color: #fff; }
+.ig-badge {
+  width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0;
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+}
+.ig-caption { font-size: 13px; line-height: 1.4; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.msg.mine .ig-caption { color: rgba(255, 255, 255, 0.85); }
+.ig-open {
+  align-self: flex-start; border: 0; border-radius: 9px; padding: 5px 11px; font-size: 12px; font-weight: 650;
+  background: color-mix(in srgb, #d6249f 16%, transparent); color: #e1306c; transition: background 0.15s;
+}
+.ig-open:hover { background: color-mix(in srgb, #d6249f 26%, transparent); }
+.msg.mine .ig-open { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.ig-story { display: flex; flex-direction: column; gap: 4px; }
+.ig-story-line {
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 600;
+  color: var(--text-2); padding: 4px 8px; border-radius: 9px; background: rgba(127, 127, 127, 0.14); border-left: 3px solid #e1306c; align-self: flex-start;
+}
+.msg.mine .ig-story-line { color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.16); border-left-color: rgba(255, 255, 255, 0.8); }
+.ig-story-line em { font-style: normal; font-weight: 500; opacity: 0.75; }
+.ig-story-open { border: 0; background: none; color: #e1306c; font-size: 12px; font-weight: 700; padding: 0 2px; }
+.msg.mine .ig-story-open { color: #fff; }
+.ig-story.gone .ig-story-line { opacity: 0.85; }
+

@@ -15,6 +15,8 @@ import {
   senderName, previewText, formatBytes, memberAvatar, cleanName,
 } from '../matrix.js';
 import LinkPreview, { shortUrl } from './LinkPreview.jsx';
+import { igBody, igCaption } from './IgCards.jsx';
+import { igParse, igStoryContext } from '../igshare.js';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
@@ -146,10 +148,12 @@ function SeenList({ readers, onClose }) {
   );
 }
 
-function Caption({ content }) {
+function Caption({ content, client, mine }) {
+  const myName = client?.getUser(client.getUserId())?.displayName;
   // Bridges put the caption in `body` and the file name in `filename`.
   const caption = content.filename && content.body && content.body !== content.filename ? content.body : null;
-  return caption ? <div className="caption"><Linkified text={caption} /></div> : null;
+  if (!caption) return null;
+  return igCaption(caption, { mine, myName }) || <div className="caption"><Linkified text={caption} /></div>;
 }
 
 function ImageBody({ client, content, onOpen, meta, sticker }) {
@@ -168,7 +172,7 @@ function ImageBody({ client, content, onOpen, meta, sticker }) {
         {src ? <img src={src} alt="" draggable={false} /> : <div className="media-loading" />}
         {!sticker && !hasCaption(content) && meta}
       </div>
-      <Caption content={content} />
+      <Caption content={content} client={client} mine={mine} />
     </>
   );
 }
@@ -260,7 +264,7 @@ function VideoBody({ client, content, meta }) {
         )}
         {!started && !hasCaption(content) && meta}
       </div>
-      <Caption content={content} />
+      <Caption content={content} client={client} mine={mine} />
     </>
   );
 }
@@ -307,7 +311,7 @@ function FileBody({ client, content }) {
         </span>
         <span className="file-dl"><Svg d={I.download} size={18} /></span>
       </a>
-      <Caption content={content} />
+      <Caption content={content} client={client} mine={mine} />
     </>
   );
 }
@@ -346,6 +350,9 @@ function Body({ client, room, ev, content, mine, onOpenImage, meta }) {
     case MsgType.Emote:
       return <span className="emote">* {senderName(room, ev.getSender())} <Linkified text={content.body || ''} /></span>;
     default: {
+      // Instagram shares and story replies come as Markdown with raw links: show them as cards.
+      const ig = content.msgtype === MsgType.Text && igBody(content, { mine, myName: client.getUser(client.getUserId())?.displayName });
+      if (ig) return ig;
       const text = replyToId(ev) ? stripReplyFallback(content.body) : content.body || '';
       return <span className="text"><Linkified text={text} mentions={mentionsOf(content)} me={client.getUserId()} /></span>;
     }
@@ -477,9 +484,12 @@ function Message({
     a.click();
     a.remove();
   };
+  // Instagram shares/story replies already render as their own card: no link preview on top.
+  const igMsg = content.msgtype === MsgType.Text && !!(igParse(content.body) || igStoryContext(content.formatted_body));
   const link = (content.body || '').match(URL_RE)?.[0];
+  const previewLink = igMsg ? null : link;
   // A message that is only a link shows just the preview card (WhatsApp-style), not the long URL.
-  const linkOnly = !!link && content.msgtype === MsgType.Text && !replyId && stripReplyFallback(content.body || '').trim() === link;
+  const linkOnly = !!previewLink && content.msgtype === MsgType.Text && !replyId && stripReplyFallback(content.body || '').trim() === link;
   // Smart cards (Pix, codes, tracking, dates, addresses) under text messages.
   const smartOn = copyable && !ev.isRedacted() && getPrefs().smartCards !== false;
   const smartText = smartOn ? stripReplyFallback(content.body || '') : '';
@@ -564,7 +574,7 @@ function Message({
             {linkOnly
               ? <LinkPreview client={client} room={room} url={link} ts={ev.getTs()} mine={mine} standalone />
               : !pixOnly && <Body client={client} room={room} ev={ev} content={shown} mine={mine} onOpenImage={onOpenImage} meta={meta} />}
-            {link && copyable && !linkOnly && !ev.isRedacted() && <LinkPreview client={client} room={room} url={link} ts={ev.getTs()} mine={mine} />}
+            {previewLink && copyable && !linkOnly && !ev.isRedacted() && <LinkPreview client={client} room={room} url={link} ts={ev.getTs()} mine={mine} />}
             {smartOn && <SmartCards text={smartText} ts={ev.getTs()} mine={mine} ctx={{ roomName: cleanName(room.name || '') }} />}
             {content['dev.relay.view_once'] && <span className="vo-tag"><span className="vo-circle small">1</span>View once</span>}
             {!imageOverlay && !isAudio && meta}

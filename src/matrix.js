@@ -7,6 +7,7 @@ import {
   RelationType,
 } from 'matrix-js-sdk';
 import { decodeRecoveryKey } from 'matrix-js-sdk/lib/crypto-api/index.js';
+import { igPreview } from './igshare.js';
 
 const DB_NAME = 'relay-sync';
 const CRYPTO_PREFIX = 'relay-crypto';
@@ -219,7 +220,7 @@ export function previewText(room, ev, myUserId) {
     case MsgType.File: text = `📎 ${c.body || 'File'}`; break;
     case MsgType.Emote: text = `* ${senderName(room, ev.getSender())} ${c.body}`; break;
     case 'm.location': text = '📍 Location'; break;
-    default: text = plainMarkers((c.body || '').replace(/\s*\((WA|WhatsApp|TG|Telegram|Discord)\)/g, ''));
+    default: text = igPreview(c.body || '', room.client?.getUser?.(myUserId)?.displayName) || plainMarkers((c.body || '').replace(/\s*\((WA|WhatsApp|TG|Telegram|Discord)\)/g, ''));
   }
   // Group chats show who sent the last message.
   const isGroup = peopleCount(room) > 2;
