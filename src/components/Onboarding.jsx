@@ -3,6 +3,7 @@ import Logo from './Logo.jsx';
 import NetIcon from './NetIcon.jsx';
 import Login from './Login.jsx';
 import LocalSetup, { useLocalSetup } from './LocalSetup.jsx';
+import { RestoreDialog } from './BackupPanel.jsx';
 import { hasLocal } from '../local.js';
 import { usePrefs, setPref, ACCENTS } from '../prefs.js';
 
@@ -17,6 +18,7 @@ function Dots({ step, total }) {
 }
 
 function Welcome({ next }) {
+  const [restore, setRestore] = useState(false);
   return (
     <div className="ob-step center">
       <div className="ob-logo"><Logo size={112} /></div>
@@ -26,6 +28,8 @@ function Welcome({ next }) {
         {NETS.map((n, i) => <span key={n} style={{ animationDelay: `${0.25 + i * 0.06}s` }}><NetIcon id={n} variant="tile" size={40} /></span>)}
       </div>
       <button className="primary ob-cta" onClick={next}>Get started</button>
+      {window.relay?.backup && <button className="ghost ob-restore" onClick={() => setRestore(true)}>Used Relay on another computer? Restore a backup</button>}
+      {restore && <RestoreDialog onClose={() => setRestore(false)} />}
     </div>
   );
 }

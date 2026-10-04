@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
+const reliability = require('./reliability.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -526,6 +527,7 @@ app.whenReady().then(() => {
       { role: 'windowMenu' },
     ]));
   }
+  reliability.init({ mainWindow: () => win });
   createWindow();
   updater.init((s) => send('update:state', s));
   app.on('activate', () => {
