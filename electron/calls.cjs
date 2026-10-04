@@ -233,8 +233,13 @@ function ensureWindow() {
     if (waWin.isFullScreen()) { waWin.once('leave-full-screen', () => waWin?.hide()); waWin.setFullScreen(false); } else waWin.hide();
     broadcast();
   });
-  waWin.on('show', broadcast);
-  waWin.on('hide', broadcast);
+  waWin.webContents.setAudioMuted(true);
+  waWin.on('show', () => { syncAudio(); broadcast(); });
+  waWin.on('hide', () => { syncAudio(); broadcast(); });
+  waWin.on('focus', syncAudio);
+  waWin.on('blur', syncAudio);
+  // Call popups open as their own windows: they start muted like the rest.
+  waWin.webContents.on('did-create-window', (child) => { child.webContents.setAudioMuted(true); syncAudio(); });
   waWin.on('closed', () => { waWin = null; dom = { status: 'off', incoming: false, inCall: false }; broadcast(); });
   waWin.loadURL(WA_URL).catch(() => {});
   broadcast();
@@ -248,6 +253,17 @@ function showWindow() {
   w.show();
   w.focus();
   broadcast();
+}
+
+/**
+ * WhatsApp Web stays muted: it gets every message too and would play its own "pop" next to Relay's
+ * notification sound. Sound only while a call is up (and not ringing — Relay rings itself), or
+ * while you have its window open in front of you.
+ */
+function syncAudio() {
+  const open = !!(waWin && !waWin.isDestroyed() && waWin.isVisible() && waWin.isFocused());
+  const muted = !!ring || !(dom.inCall || open);
+  for (const wc of waContents()) if (wc.isAudioMuted() !== muted) wc.setAudioMuted(muted);
 }
 
 /** Every WhatsApp Web page (the main one and any call popups). */
@@ -302,6 +318,7 @@ ipcMain.on('wa:state', (e, s) => {
     live = null;
   }
   if (!dom.inCall) inCallSince = null;
+  syncAudio();
 
   if (dom.incoming) {
     if (!ring) incoming({ name: incomingPage?.name, video: incomingPage?.video, source: 'page' });
@@ -363,7 +380,7 @@ function incoming({ name, video, avatar, roomId, source }) {
   ring.timer = setTimeout(() => endRing(), test ? 20 * 1000 : RING_TIMEOUT);
   if (!test) ring.logId = logAdd({ dir: 'in', state: 'ringing', video: ring.video, name: ring.name, roomId: ring.roomId });
   // Relay rings itself, so WhatsApp Web's ringtone would double it.
-  for (const wc of waContents()) wc.setAudioMuted(true);
+  syncAudio();
   showToast();
   nativeNotice();
   broadcast();
@@ -386,7 +403,7 @@ function endRing(how) {
     logUpdate(r.logId, { state: outcome, ...(outcome === 'answered' && inCallSince ? { connectedAt: inCallSince } : {}) });
     if (outcome === 'answered') setLive(r.logId);
   }
-  for (const wc of waContents()) wc.setAudioMuted(false);
+  syncAudio();
   if (toastWin && !toastWin.isDestroyed()) toastWin.webContents.send('toast:end');
   setTimeout(() => { if (!ring && toastWin && !toastWin.isDestroyed()) toastWin.destroy(); }, 260);
   broadcast();
