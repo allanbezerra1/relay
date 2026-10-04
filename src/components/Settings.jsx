@@ -9,6 +9,8 @@ import { NOTIFICATION_SOUNDS, notificationSound, uiSound } from '../sounds.js';
 import { player } from '../player.js';
 import VolumeSlider from './VolumeSlider.jsx';
 import { useUpdate } from '../update.js';
+import AISettings from './AISettings.jsx';
+import { SPARK_PATH } from './SummaryCard.jsx';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
@@ -16,6 +18,7 @@ const SECTIONS = [
   { id: 'notifications', label: 'Notifications', icon: 'M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z' },
   { id: 'appearance', label: 'Appearance', icon: 'M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z' },
   { id: 'privacy', label: 'Privacy & security', icon: 'M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 10h6c-.5 4-3 7.4-6 8.4V12H6V6.3l6-2.2V12Z' },
+  { id: 'ai', label: 'AI', icon: SPARK_PATH },
   { id: 'advanced', label: 'Advanced', icon: 'M8.6 15.4 5.2 12l3.4-3.4L7.2 7.2 2.4 12l4.8 4.8 1.4-1.4Zm6.8 0L18.8 12l-3.4-3.4 1.4-1.4 4.8 4.8-4.8 4.8-1.4-1.4Z' },
   { id: 'about', label: 'About', icon: 'M11 7h2v2h-2V7Zm0 4h2v6h-2v-6Zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z' },
 ];
@@ -412,6 +415,7 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
           {current === 'notifications' && <Notifications />}
           {current === 'appearance' && <Appearance />}
           {current === 'privacy' && <Privacy client={client} isLocal={isLocal} />}
+          {current === 'ai' && <AISettings />}
           {current === 'advanced' && <Advanced isLocal={isLocal} onSignOut={onSignOut} />}
           {current === 'about' && <About />}
         </div>

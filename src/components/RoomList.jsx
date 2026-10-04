@@ -20,6 +20,7 @@ const ICONS = {
   open: 'M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7ZM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7Z',
   unread: 'M20 6.54v10.91c0 .3-.24.55-.55.55H4.55A.55.55 0 0 1 4 17.45V6.55c0-.3.25-.55.55-.55h10.03a4 4 0 0 0 5.42.54ZM18 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
   copy: 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
+  spark: 'M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2Zm7 11 .95 2.55L22.5 16.5l-2.55.95L19 20l-.95-2.55-2.55-.95 2.55-.95L19 13ZM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15Z',
   leave: 'M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59ZM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z',
 };
 const Ico = ({ d, size = 17 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"><path fill="currentColor" d={d} /></svg>;
@@ -65,7 +66,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles, onNewGroup,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup, headerExtra, onSummarize,
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -134,6 +135,7 @@ export default function RoomList({
 
   const menuItems = (r) => [
     { label: 'Open', icon: <Ico d={ICONS.open} size={15} />, run: () => onOpen(r.id) },
+    onSummarize && !r.invite && { label: 'Summarize chat', icon: <Ico d={ICONS.spark} size={15} />, run: () => onSummarize(r.id) },
     'separator',
     { label: r.pinned ? 'Unpin' : 'Pin to top', icon: <Ico d={ICONS.pin} size={15} />, run: () => actions.togglePin(r) },
     { label: r.muted ? 'Unmute' : 'Mute', icon: <Ico d={ICONS.mute} size={15} />, run: () => actions.toggleMute(r) },
@@ -154,6 +156,7 @@ export default function RoomList({
         <div className="sidebar-title">
           <h2>{view === 'archive' ? 'Archive' : filterName}</h2>
           <div className="title-tools">
+            {headerExtra}
             {onNewGroup && <button className="icon-btn" title="New group" onClick={onNewGroup}><Ico d={ICONS.newGroup} /></button>}
             <button className={`icon-btn ${showFilters || filtersActive ? 'on' : ''}`} title="Filters" onClick={() => setShowFilters(!showFilters)}><Ico d={ICONS.filter} /></button>
             <button className={`icon-btn ${showSearch || query ? 'on' : ''}`} title="Search (⌘F)" onClick={() => { setShowSearch(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Ico d={ICONS.search} /></button>

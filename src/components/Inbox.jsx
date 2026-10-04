@@ -19,6 +19,9 @@ import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
+import DigestPanel from './DigestPanel.jsx';
+import { Spark } from './SummaryCard.jsx';
+import { aiPrefs, useAiReady, requestSummary } from '../ai.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -139,6 +142,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [settings, setSettings] = useState(null); // null | section id
   const [newGroup, setNewGroup] = useState(false);
   const [inboxToast, setInboxToast] = useState(null);
+  const [digest, setDigest] = useState(false); // local AI daily digest
+  const aiReady = useAiReady();
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
   useEffect(() => {
@@ -514,6 +519,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           onSettings={() => setSettings('general')}
           onDropFiles={dropOnRoom}
           onNewGroup={isLocal ? () => setNewGroup(true) : null}
+          headerExtra={aiReady && aiPrefs(prefs).aiDigest && (
+            <button className="icon-btn ai-digest-btn" title="Daily digest: catch up on your busiest groups" onClick={() => setDigest(true)}><Spark size={16} /></button>
+          )}
+          onSummarize={aiReady ? (id) => { openRoom(id); setTimeout(() => requestSummary(id), 60); } : null}
         />
       )}
 
@@ -539,6 +548,9 @@ export default function Inbox({ client, isLocal, onSignOut }) {
 
       {switcher && (
         <QuickSwitcher rooms={rooms} onClose={() => setSwitcher(false)} onPick={(id) => { setQuery(''); openRoom(id); setSwitcher(false); }} />
+      )}
+      {digest && (
+        <DigestPanel client={client} rooms={rooms} onOpen={(id) => { setDigest(false); openRoom(id); }} onClose={() => setDigest(false)} />
       )}
       {settings && (
         <Settings client={client} isLocal={isLocal} section={settings} onSection={setSettings}

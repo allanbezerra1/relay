@@ -65,6 +65,17 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener(`local:${channel}`, fn);
     },
   },
+  // Local AI (LM Studio). Requests run in the main process; answers stream over ai:chunk.
+  ai: {
+    status: (host) => ipcRenderer.invoke('ai:status', host),
+    complete: (opts) => ipcRenderer.invoke('ai:complete', opts), // { id, host, model, messages, task?, maxTokens?, temperature?, responseFormat? }
+    cancel: (id) => ipcRenderer.send('ai:cancel', id),
+    onChunk: (cb) => {
+      const fn = (_e, chunk) => cb(chunk);
+      ipcRenderer.on('ai:chunk', fn);
+      return () => ipcRenderer.removeListener('ai:chunk', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);
