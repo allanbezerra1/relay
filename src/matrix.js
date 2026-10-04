@@ -199,6 +199,9 @@ export function isState(ev) {
   return ev.isState() && [EventType.RoomMember, EventType.RoomName, EventType.RoomTopic, EventType.RoomAvatar].includes(ev.getType());
 }
 
+/** "**bold**", "_italic_"… without the markers, for one-line previews. */
+const plainMarkers = (t) => t.replace(/```([\s\S]+?)```|`([^`\n]+)`|\*\*(\S[\s\S]*?\S|\S)\*\*|(?<![\w*])[*_~](\S[^*_~\n]*?\S|\S)[*_~](?![\w*_~])/g, (m, a, b, c, d) => a ?? b ?? c ?? d ?? m);
+
 export function previewText(room, ev, myUserId) {
   if (!ev) return '';
   if (ev.isRedacted()) return 'Message deleted';
@@ -216,7 +219,7 @@ export function previewText(room, ev, myUserId) {
     case MsgType.File: text = `📎 ${c.body || 'File'}`; break;
     case MsgType.Emote: text = `* ${senderName(room, ev.getSender())} ${c.body}`; break;
     case 'm.location': text = '📍 Location'; break;
-    default: text = (c.body || '').replace(/\s*\((WA|WhatsApp|TG|Telegram|Discord)\)/g, '');
+    default: text = plainMarkers((c.body || '').replace(/\s*\((WA|WhatsApp|TG|Telegram|Discord)\)/g, ''));
   }
   // Group chats show who sent the last message.
   const isGroup = peopleCount(room) > 2;

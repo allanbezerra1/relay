@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useContextMenu } from './ContextMenu.jsx';
 import { EventStatus, EventType, MsgType } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
@@ -63,10 +63,31 @@ function Mentions({ text, mentions, me }) {
   });
 }
 
+// WhatsApp-style formatting written as plain text: *bold* / **bold** (Instagram sends Markdown),
+// _italic_, ~strikethrough~, `code` and ```blocks```. Like WhatsApp, a marker only counts at a
+// word boundary, so "2*3*4" or snake_case stay as they are.
+const FMT = /(```[\s\S]+?```|`[^`\n]+`|\*\*(?=\S)[\s\S]+?\S\*\*|(?<![\w*])\*(?=\S)[^*\n]*?\S\*(?![\w*])|(?<![\w_])_(?=\S)[^_\n]*?\S_(?![\w_])|(?<![\w~])~(?=\S)[^~\n]*?\S~(?![\w~]))/;
+
+function Formatted({ text, render }) {
+  const parts = text.split(FMT);
+  if (parts.length === 1) return render(text);
+  return parts.map((p, i) => {
+    if (i % 2 === 0) return p ? <Fragment key={i}>{render(p)}</Fragment> : null;
+    if (p.startsWith('```')) return <code key={i} className="fmt-block">{p.slice(3, -3).replace(/^\n/, '')}</code>;
+    if (p.startsWith('`')) return <code key={i} className="fmt-code">{p.slice(1, -1)}</code>;
+    if (p.startsWith('**')) return <strong key={i}><Formatted text={p.slice(2, -2)} render={render} /></strong>;
+    const inner = <Formatted text={p.slice(1, -1)} render={render} />;
+    if (p[0] === '*') return <strong key={i}>{inner}</strong>;
+    if (p[0] === '_') return <em key={i}>{inner}</em>;
+    return <s key={i}>{inner}</s>;
+  });
+}
+
 function Linkified({ text, mentions, me }) {
   const parts = text.split(URL_RE);
   return parts.map((p, i) =>
-    i % 2 ? <a key={i} href={p} target="_blank" rel="noreferrer">{p}</a> : <Mentions key={i} text={p} mentions={mentions} me={me} />,
+    i % 2 ? <a key={i} href={p} target="_blank" rel="noreferrer">{p}</a>
+      : <Formatted key={i} text={p} render={(t) => <Mentions text={t} mentions={mentions} me={me} />} />,
   );
 }
 
