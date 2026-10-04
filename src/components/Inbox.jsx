@@ -26,6 +26,7 @@ import { ask, notice } from '../dialogs.jsx';
 import { useOrganize } from './Organize.jsx';
 import { runAutomations } from '../automations.js';
 import { onReminder } from '../reminders.js';
+import { useHealthLevel } from '../reliability.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -171,6 +172,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [railMenu, openRailMenu] = useContextMenu();
 
   const { status: localStatus, profiles } = useProfiles(client, isLocal, tick);
+  const healthLevel = useHealthLevel(isLocal); // amber / red dot on the Settings button when something is down
 
   // Which account each chat belongs to, shown when a network has several accounts.
   const accountOf = useMemo(() => {
@@ -528,7 +530,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         )}
         <div className="rail-spacer" />
         {railMenu}
-        <button className="rail-btn" onClick={() => setSettings('general')} title="Settings (⌘,)">
+        <button className="rail-btn" onClick={() => setSettings(healthLevel !== 'ok' ? 'health' : 'general')} title={healthLevel !== 'ok' ? 'Settings · something needs attention' : 'Settings (⌘,)'}>
+          {healthLevel !== 'ok' && <i className={`rail-health-dot ${healthLevel}`} />}
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.43 12.98a7.8 7.8 0 0 0 0-1.96l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.3 7.3 0 0 0-1.69-.98l-.38-2.65A.49.49 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64l2.11 1.65a7.9 7.9 0 0 0 0 1.96l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" /></svg>
         </button>
         <button className="rail-me" onClick={() => setSettings('general')} title={myName}>{(myName[0] || 'R').toUpperCase()}</button>

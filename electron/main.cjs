@@ -10,6 +10,7 @@ require('./smart.cjs').init(); // smart cards: addresses on the map (smart:geoco
 const reminders = require('./reminders.cjs');
 const scheduled = require('./scheduled.cjs');
 const applock = require('./applock.cjs'); // "Lock Relay with a password"
+const reliability = require('./reliability.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -579,6 +580,7 @@ app.whenReady().then(() => {
       { role: 'windowMenu' },
     ]));
   }
+  reliability.init({ mainWindow: () => win });
   createWindow();
   reminders.init({
     mainWindow: () => win,

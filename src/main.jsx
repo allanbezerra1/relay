@@ -18,6 +18,7 @@ import './styles/reminders.css';
 import './styles/power.css';
 import './styles/media.css';
 import './styles/app-lock.css';
+import './styles/health.css';
 import { DialogHost } from './dialogs.jsx';
 import { ReminderHost } from './components/Reminders.jsx';
 import PrivacyLayer from './components/PrivacyLayer.jsx';

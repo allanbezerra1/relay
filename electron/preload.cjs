@@ -109,6 +109,35 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener('scheduled:changed', fn);
     },
   },
+  // Settings → Health / Backup (electron/reliability.cjs).
+  health: {
+    get: () => ipcRenderer.invoke('health:get'),
+    summary: () => ipcRenderer.invoke('health:summary'),
+    disk: () => ipcRenderer.invoke('health:disk'),
+    fix: () => ipcRenderer.invoke('health:fix'),
+    cleanLogs: () => ipcRenderer.invoke('health:cleanLogs'),
+    diagnostics: () => ipcRenderer.invoke('health:diagnostics'),
+    openLogs: () => ipcRenderer.invoke('health:openLogs'),
+    onFixProgress: (cb) => {
+      const fn = (_e, p) => cb(p);
+      ipcRenderer.on('health:fixProgress', fn);
+      return () => ipcRenderer.removeListener('health:fixProgress', fn);
+    },
+  },
+  backup: {
+    info: () => ipcRenderer.invoke('backup:info'),
+    create: (opts) => ipcRenderer.invoke('backup:create', opts),
+    cancel: () => ipcRenderer.invoke('backup:cancel'),
+    pick: () => ipcRenderer.invoke('backup:pick'),
+    inspect: (file, passphrase) => ipcRenderer.invoke('backup:inspect', file, passphrase),
+    restore: (file, passphrase) => ipcRenderer.invoke('backup:restore', file, passphrase),
+    showFile: (file) => ipcRenderer.invoke('backup:showFile', file),
+    onProgress: (cb) => {
+      const fn = (_e, p) => cb(p);
+      ipcRenderer.on('backup:progress', fn);
+      return () => ipcRenderer.removeListener('backup:progress', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);

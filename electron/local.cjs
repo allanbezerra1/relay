@@ -213,6 +213,9 @@ async function configureSynapse() {
   await writeYaml(path.join(P.synapse, 'doublepuppet.yaml'), dp);
 }
 
+/** The bridges are downloaded as macOS Apple silicon builds (see downloadBridge). */
+const isSupported = () => process.platform === 'darwin' && process.arch === 'arm64';
+
 async function downloadBridge(name, progress) {
   if (process.arch !== 'arm64') throw new Error('Local mode currently needs a Mac with Apple silicon.');
   const { repo } = BRIDGES[name];
@@ -394,6 +397,7 @@ function spawnManaged(name, cmd, args, cwd) {
   out.write(`\n===== ${new Date().toISOString()} starting ${name} =====\n`);
   const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PYTHONUNBUFFERED: '1' } });
   entry.child = child;
+  entry.startedAt = Date.now();
   // end: false: the log is closed in the exit handler below, after its last line.
   child.stdout.pipe(out, { end: false });
   child.stderr.pipe(out, { end: false });
@@ -423,6 +427,8 @@ function spawnManaged(name, cmd, args, cwd) {
     if (!entry.wanted) { setStatus(name, 'stopped'); return; }
     // Crashed: restart with backoff (2s, 4s, 8s … max 60s).
     setStatus(name, 'crashed');
+    entry.crashes = (entry.crashes || 0) + 1;
+    entry.crashedAt = Date.now();
     const delay = Math.min(60000, 2000 * 2 ** entry.restarts++);
     setTimeout(() => { if (entry.wanted) spawnManaged(name, cmd, args, cwd); }, delay);
   });
@@ -514,6 +520,7 @@ async function start() {
   starting = (async () => {
     if (!procs.size) {
       await killOrphans();
+      await repairMissing().catch((err) => console.error('Reinstalling missing programs failed:', err));
       if (fs.existsSync(P.hsConfig)) await configureSynapse().catch((err) => console.error('Configuring Synapse failed:', err));
       retryRefusedAvatars();
       for (const name of Object.keys(BRIDGES).filter(isBridgeInstalled)) {
@@ -554,6 +561,36 @@ async function addNetwork(name, progress = () => {}) {
   })();
   adding.set(name, job);
   try { return await job; } finally { adding.delete(name); }
+}
+
+/**
+ * Programs a backup leaves out (the Python venv, the bridge binaries) are downloaded again
+ * the first time the restored server starts. See electron/reliability.cjs.
+ */
+async function repairMissing(progress = () => {}) {
+  if (fs.existsSync(P.hsConfig) && !fs.existsSync(P.python)) await installSynapse(progress);
+  for (const name of Object.keys(BRIDGES)) {
+    if (fs.existsSync(path.join(P.bridge(name), 'registration.yaml')) && !fs.existsSync(P.binary(name))) await downloadBridge(name, progress);
+  }
+  const libolm = path.join(P.bin, 'libolm.3.dylib');
+  if (process.platform === 'darwin' && fs.existsSync(P.bin) && !fs.existsSync(libolm) && fs.existsSync(libolmSource())) await fsp.copyFile(libolmSource(), libolm);
+}
+
+/** Supervisor details for the health panel: status, pid, uptime, crashes per process. */
+function procInfo() {
+  const out = {};
+  for (const [name, p] of procs) {
+    out[name] = {
+      status: p.status, pid: p.child?.exitCode === null ? p.child.pid : null,
+      startedAt: p.startedAt || null, crashes: p.crashes || 0, crashedAt: p.crashedAt || null, backoff: p.restarts || 0,
+    };
+  }
+  return out;
+}
+
+/** Resolves once no install or start is running (a restore waits for this before swapping folders). */
+async function whenIdle() {
+  await Promise.allSettled([installing, starting, ...adding.values()].filter(Boolean));
 }
 
 async function stopProcess(name, timeoutMs = 8000) {
@@ -1111,4 +1148,6 @@ module.exports = {
   favoriteStickers, syncFavoriteStickers, whatsappViewing, whatsappRecording, createGroup,
   discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
   logsDir: () => P.logs,
+  P, isBridgeInstalled, isSupported, procInfo, repairMissing, whenIdle,
+  resetState: () => { state = null; },
 };
