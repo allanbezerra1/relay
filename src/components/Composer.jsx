@@ -6,6 +6,8 @@ import EmojiPicker from './EmojiPicker.jsx';
 import { sendSticker } from '../stickers.js';
 import NetIcon from './NetIcon.jsx';
 import { uiSound } from '../sounds.js';
+import PollDialog from './PollDialog.jsx';
+import { PollIcon } from './PollCard.jsx';
 
 const drafts = new Map(); // roomId -> text, kept while the app is open
 
@@ -123,6 +125,8 @@ const Composer = forwardRef(function Composer(
   const [text, setText] = useState(() => drafts.get(room.roomId) || '');
   const { enterToSend } = usePrefs();
   const [menu, setMenu] = useState(false);
+  const [polling, setPolling] = useState(false); // "Poll" dialog
+  const canPoll = /^(whatsapp|matrix)/.test(networkId || 'matrix') && !editing;
   const [emoji, setEmoji] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
   const [sendingVoice, setSendingVoice] = useState(false);
@@ -325,6 +329,7 @@ const Composer = forwardRef(function Composer(
           </div>
         </div>
       )}
+      {polling && <PollDialog client={client} room={room} roomName={roomName} onClose={() => { setPolling(false); input.current?.focus(); }} onSent={() => { uiSound('send'); onSent(); }} />}
       {voiceError && <div className="composer-error">{voiceError} <button onClick={() => setVoiceError(null)}>✕</button></div>}
 
       <input ref={photoInput} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { onFiles([...e.target.files]); e.target.value = ''; }} />
@@ -357,6 +362,7 @@ const Composer = forwardRef(function Composer(
                 <button onClick={() => pick(photoInput)}><span className="am-icon" style={{ '--c': '#7c5cff' }}><Icon d={ICON.photo} size={18} /></span>Photos &amp; videos</button>
                 <button onClick={() => pick(fileInput)}><span className="am-icon" style={{ '--c': '#2f80ed' }}><Icon d={ICON.doc} size={18} /></span>Document</button>
                 <button onClick={() => { setMenu(false); startVoice(); }}><span className="am-icon" style={{ '--c': '#ef4444' }}><Icon d={ICON.mic} size={18} /></span>Voice message</button>
+                {canPoll && <button onClick={() => { setMenu(false); setPolling(true); }}><span className="am-icon" style={{ '--c': '#f59e0b' }}><PollIcon size={18} /></span>Poll</button>}
                 <div className="am-hint">You can also paste or drag files here.</div>
               </div>
             )}

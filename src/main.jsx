@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
+import './styles/whatsapp-power.css';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';
 

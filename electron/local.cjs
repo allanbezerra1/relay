@@ -804,7 +804,7 @@ async function importWhatsAppTags() {
 // without it Relay keeps the official binary and everything else works the same.
 
 // Bump when resources/whatsapp-sync-login.patch changes, so existing installs rebuild.
-const PATCH_REV = 9;
+const PATCH_REV = 10; // r10: `sync relay` (group admin, invite links, contact about, blocking), see relay_power.go
 const GO = ['/opt/homebrew/bin/go', '/usr/local/go/bin/go', '/usr/local/bin/go'].find((p) => fs.existsSync(p)) || null;
 let patching = null;
 
@@ -1070,6 +1070,45 @@ async function bridgeCommand(name, command) {
   await asMe('PUT', `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/relay-${Date.now()}`, { msgtype: 'm.text', body: `${prefix} ${command}` });
 }
 
+// ---------- WhatsApp power features (patched bridge r10+, see relay_power.go) ----------
+
+const POWER_OPS = ['group-info', 'invite-link', 'participants', 'setting', 'user-info', 'block'];
+
+/**
+ * Run `!wa sync relay <nonce> <op> …` and wait for the bot's "relay:<nonce> {json}" answer.
+ * Resolves to the parsed JSON ({ ok, … }), or { ok: false, unsupported: true } when the patched
+ * bridge isn't available, so the UI can hide what it can't do.
+ */
+async function whatsappPower(op, args = []) {
+  const ready = patchedReady() && procs.get('whatsapp')?.status === 'running';
+  if (op === 'probe') return ready ? { ok: true } : { ok: false, unsupported: true }; // no bridge round trip
+  if (!POWER_OPS.includes(op)) return { ok: false, error: 'unknown operation' };
+  if (!ready) return { ok: false, unsupported: true };
+  const clean = (Array.isArray(args) ? args : []).map(String).filter((a) => /^[!@][^\s]+$|^[a-z-]+$/.test(a));
+  if (clean.length !== args.length) return { ok: false, error: 'invalid argument' };
+  // Act through the account that is in this chat (the default one may not be).
+  const room = clean.find((a) => a.startsWith('!'));
+  const login = room && withWhatsAppDb((db) => db.prepare(
+    `SELECT COALESCE(NULLIF(p.receiver, ''), (SELECT up.login_id FROM user_portal up WHERE up.portal_id = p.id AND up.portal_receiver = p.receiver ORDER BY up.preferred DESC LIMIT 1)) AS login
+       FROM portal p WHERE p.mxid = ?`).get(room)?.login);
+  const nonce = Math.random().toString(36).slice(2, 10);
+  await bridgeCommand('whatsapp', `sync relay ${nonce} ${op} ${clean.join(' ')}${login ? ` --login=${login}` : ''}`);
+  const roomId = loadState().commandRooms?.whatsapp;
+  const bot = `@whatsappbot:${SERVER_NAME}`;
+  const tag = `relay:${nonce} `;
+  const deadline = Date.now() + 25000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 350));
+    const { chunk = [] } = await asMe('GET', `/rooms/${encodeURIComponent(roomId)}/messages?dir=b&limit=30`).catch(() => ({}));
+    for (const ev of chunk) {
+      const body = ev.sender === bot && ev.content?.body;
+      if (typeof body !== 'string' || !body.startsWith(tag)) continue;
+      try { return JSON.parse(body.slice(tag.length)); } catch { return { ok: false, error: 'invalid reply' }; }
+    }
+  }
+  return { ok: false, error: 'WhatsApp didn’t answer in time. Try again.' };
+}
+
 async function setTelegramKeys(apiId, apiHash) {
   if (!/^\d+$/.test(String(apiId).trim()) || !/^[0-9a-f]{32}$/i.test(String(apiHash).trim())) {
     throw new Error('The api_id is a number and the api_hash is 32 letters/numbers. Copy both from my.telegram.org.');
@@ -1087,6 +1126,6 @@ module.exports = {
   isInstalled, install, credentials, start, stop, status,
   loginStart, loginStep, loginCancel, logout,
   favoriteStickers, syncFavoriteStickers, whatsappViewing, whatsappRecording, createGroup,
-  discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork,
+  discordLogin, discordCancel, setTelegramKeys, restartBridge, onStatusChange, bridgeCommand, openDirectChat, addNetwork, whatsappPower,
   logsDir: () => P.logs,
 };

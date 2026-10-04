@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EventType, MsgType } from 'matrix-js-sdk';
 import Avatar from './Avatar.jsx';
+import { ContactProfile, WaGroupAdmin, DisappearingPicker, MediaTabs, GroupPhotoButton, waPanelKind } from './WaPanels.jsx';
 import { useMedia } from '../media.js';
 import { networkInfo } from '../networks.js';
 import {
@@ -75,18 +76,15 @@ function Section({ title, action, children }) {
   );
 }
 
-const TIMERS = [
-  [0, 'Off'],
-  [24 * 3600 * 1000, '24 hours'],
-  [7 * 24 * 3600 * 1000, '7 days'],
-  [90 * 24 * 3600 * 1000, '90 days'],
-];
-
 export default function InfoPanel({ client, info, actions, onClose, onOpenImage, onJump, tick }) {
   const { room } = info;
   const me = client.getUserId();
   const net = networkInfo(info.network);
   const isGroup = peopleCount(room) > 2;
+  // WhatsApp chats get the richer sections from WaPanels.jsx (contact profile, group admin, tabs).
+  const wa = waPanelKind(room, info.baseNetwork || info.network);
+  // Name / description are editable only when the room's power levels allow it (WhatsApp: "only admins edit info").
+  const canEditInfo = isGroup && room.currentState.maySendStateEvent('m.room.name', me);
   const [allMembers, setAllMembers] = useState(false);
   const [allMedia, setAllMedia] = useState(false);
   const [labelMenu, setLabelMenu] = useState(false);
@@ -138,8 +136,6 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
   const starred = getStarred(room).map((s) => ({ ...s, ev: room.findEventById(s.id) }));
   const labels = getLabels(client);
   const applied = roomLabels(room, labels);
-  const timerState = room.currentState.getStateEvents('com.beeper.disappearing_timer', '')?.getContent();
-  const timer = timerState?.type ? timerState.timer || 0 : 0;
   const canTimer = (info.baseNetwork || info.network).startsWith('whatsapp');
 
   const loadMoreMedia = async () => {
@@ -184,13 +180,17 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
       </div>
 
       <div className="ip-scroll">
+        {wa === 'dm' ? <ContactProfile client={client} room={room} info={info} onOpenImage={onOpenImage} onOpenRoom={actions.openRoom} /> : (
         <div className="ip-hero">
-          <Avatar src={roomAvatar(client, room, 240)} name={info.name} id={room.roomId} size={104} />
+          <div className="wa-photo-wrap">
+            <Avatar src={roomAvatar(client, room, 240)} name={info.name} id={room.roomId} size={104} />
+            {wa === 'group' && <GroupPhotoButton client={client} room={room} />}
+          </div>
           {editing === 'name' ? (
             <input className="ip-edit" autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={saveEdit}
               onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(null); }} />
           ) : (
-            <h2 className={isGroup ? 'editable' : ''} onClick={() => { if (isGroup) { setDraft(info.name); setEditing('name'); } }}>{info.name}</h2>
+            <h2 className={canEditInfo ? 'editable' : ''} onClick={() => { if (canEditInfo) { setDraft(info.name); setEditing('name'); } }}>{info.name}</h2>
           )}
           <div className="ip-net"><span className="net-dot-sm" style={{ '--c': net.color }} />{info.account?.business ? 'WhatsApp Business' : net.name}{isGroup ? ` · ${memberTotal} members` : ''}</div>
           {info.account && <div className="ip-account">on {info.account.detail || info.account.name}</div>}
@@ -198,12 +198,14 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
             <textarea className="ip-edit" autoFocus rows={3} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={saveEdit}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditing(null); }} />
           ) : showTopic ? (
-            <p className={`ip-topic ${isGroup ? 'editable' : ''}`} onClick={() => { if (isGroup) { setDraft(topic); setEditing('topic'); } }}>{topic}</p>
-          ) : isGroup ? (
+            <p className={`ip-topic ${canEditInfo ? 'editable' : ''}`} onClick={() => { if (canEditInfo) { setDraft(topic); setEditing('topic'); } }}>{topic}</p>
+          ) : canEditInfo ? (
             <button className="ip-link" onClick={() => { setDraft(''); setEditing('topic'); }}>Add a description…</button>
           ) : null}
         </div>
+        )}
 
+        {wa === 'group' ? <WaGroupAdmin client={client} room={room} info={info} actions={actions} tick={tick} /> : wa === 'dm' ? null : (
         <Section title={isGroup ? `Members · ${memberTotal}` : 'Contact'}>
           {shownMembers.map((m) => (
             <div key={m.userId} className={`ip-member ${m.userId !== me && isGroup ? 'clickable' : ''}`}
@@ -221,7 +223,9 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
             <button className="ip-more" onClick={() => setAllMembers(!allMembers)}>{allMembers ? 'Show less' : `Show all ${members.length}`}</button>
           )}
         </Section>
+        )}
 
+        {wa ? <MediaTabs client={client} room={room} onOpenImage={onOpenImage} tick={tick} /> : (
         <Section title="Media" action={media.length > 6 && <button className="ip-link" onClick={() => setAllMedia(!allMedia)}>{allMedia ? 'Show less' : 'Show all'}</button>}>
           {media.length ? (
             <div className="media-grid">
@@ -236,6 +240,7 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
             <button className="ip-more" disabled={loadingMore} onClick={loadMoreMedia}>{loadingMore ? 'Loading…' : 'Load older messages'}</button>
           )}
         </Section>
+        )}
 
         <Section title="Starred">
           {starred.length ? starred.map((s) => (
@@ -278,21 +283,7 @@ export default function InfoPanel({ client, info, actions, onClose, onOpenImage,
           </div>
         </Section>
 
-        {canTimer && (
-          <Section title="Disappearing messages">
-            <div className="ip-timer">
-              <select value={timer} onChange={(e) => {
-                const ms = Number(e.target.value);
-                client.sendStateEvent(room.roomId, 'com.beeper.disappearing_timer', ms ? { type: 'after_send', timer: ms } : {}, '')
-                  .catch((err) => alert(`Couldn’t change it: ${err.message}`));
-              }}>
-                {TIMERS.map(([ms, label]) => <option key={ms} value={ms}>{label}</option>)}
-                {!TIMERS.some(([ms]) => ms === timer) && <option value={timer}>{Math.round(timer / 86400000)} days</option>}
-              </select>
-              <span className="muted small">New messages disappear for everyone in this chat after this time.</span>
-            </div>
-          </Section>
-        )}
+        {canTimer && <DisappearingPicker client={client} room={room} kind={wa || 'dm'} />}
         <Section title="Notes">
           <textarea className="ip-notes" value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveNote}
             placeholder="Private notes about this chat. Only you can see them." rows={4} />

@@ -12,6 +12,8 @@ import { uiSound, reactionSound } from '../sounds.js';
 import { networkInfo } from '../networks.js';
 import { replyToId, cleanName, peopleCount, isDisplayable, reactionsFor, roomAvatar, memberAvatar, senderName, formatDay } from '../matrix.js';
 import { uploadAttachment } from '../media.js';
+import { DisappearLine, TimerBadge } from './WaChatBits.jsx';
+import { timerChange, isTimerNotice } from '../whatsapp-power.js';
 
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
@@ -357,11 +359,22 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   // ----- Render -----
   const rows = [];
   let prev = null;
-  for (const ev of events) {
+  // Disappearing-message changes show as a system line (the state event); the bridge's notice is skipped.
+  let dayTs = null;
+  for (const ev of timeline.getEvents().filter((e) => (isDisplayable(e) && !isTimerNotice(e)) || timerChange(e))) {
     const ts = ev.getTs();
-    if (!prev || new Date(prev.getTs()).toDateString() !== new Date(ts).toDateString()) {
+    if (!dayTs || new Date(dayTs).toDateString() !== new Date(ts).toDateString()) {
       rows.push(<div key={`day-${ts}`} className="day-sep"><span>{formatDay(ts)}</span></div>);
       prev = null;
+    }
+    dayTs = ts;
+    const tc = timerChange(ev);
+    if (tc) {
+      const by = ev.getSender();
+      rows.push(<DisappearLine key={ev.getId()} change={tc} who={by === me ? 'You' : /^@[a-z]+bot:/.test(by) ? null : senderName(room, by)}
+        onOpen={() => { if (!infoOpen) toggleInfo(); }} />);
+      prev = null;
+      continue;
     }
     const continued = prev && prev.getSender() === ev.getSender() && ts - prev.getTs() < GROUP_GAP_MS;
     rows.push(<Message key={ev.getId() || ev.getTxnId()} {...messageProps(ev)} continued={continued} />);
@@ -471,7 +484,13 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
             </div>
           </div>
         );
-      })() : (
+      })() : room.currentState.maySendMessage && !room.currentState.maySendMessage(me) ? (
+        // e.g. a WhatsApp group set to "only admins can send messages" (events_default 50)
+        <div className="wa-readonly-bar">
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm-2 16-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8Z" /></svg>
+          <span>{/^whatsapp/.test(info.network || '') ? 'Only admins can send messages to this group' : 'You can’t send messages to this chat'}</span>
+        </div>
+      ) : (
       <Composer
         ref={composerRef}
         client={client}
@@ -523,6 +542,7 @@ function ChatHeader({ client, info, infoOpen, onToggleInfo }) {
         <span className="float-name">
           {muted && <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M20 18.69 7.84 6.14 5.27 3.49 4 4.76l2.8 2.8v.01A6.96 6.96 0 0 0 6 11v5l-2 2v1h13.73l2 2L21 19.72l-1-1.03ZM12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm6-7.32V11a6.99 6.99 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16c-.47.1-.92.26-1.34.46L18 14.68Z" /></svg>}
           <span className="float-title">{info.name}</span>
+          <TimerBadge room={room} />
           <svg viewBox="0 0 24 24" width="16" height="16" className={`chev ${infoOpen ? 'open' : ''}`}><path fill="currentColor" d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6 1.4-1.4Z" /></svg>
         </span>
       </button>

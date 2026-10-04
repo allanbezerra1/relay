@@ -6,6 +6,7 @@ import MiniPlayer from './MiniPlayer.jsx';
 import UpdateBanner from './UpdateBanner.jsx';
 import { roomAvatar, formatTime, memberAvatar, senderName, cleanName } from '../matrix.js';
 import { toggleLabel } from '../chatmeta.js';
+import { MEGAPHONE } from './Broadcast.jsx';
 
 const ICONS = {
   newGroup: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-7 1.6-7 4v2h11.3a6 6 0 0 1-.3-2 6 6 0 0 1 1.5-4A12 12 0 0 0 9 13Zm10 0v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2Z',
@@ -65,7 +66,7 @@ export default function RoomList({
   client, rooms, activeId, onOpen, query, setQuery, searchRef,
   view, setView, unreadOnly, setUnreadOnly, filterName, archivedCount, actions,
   showPreviews = true, me, onSettings, profiles = [], labels = [], labelFilter, setLabelFilter,
-  typeFilter, setTypeFilter, onDropFiles, onNewGroup,
+  typeFilter, setTypeFilter, onDropFiles, onNewGroup, onBroadcast,
 }) {
   // Pinned chats sit on top as big tiles (inbox view only).
   const showTiles = view === 'inbox' && !query && !unreadOnly;
@@ -155,6 +156,7 @@ export default function RoomList({
           <h2>{view === 'archive' ? 'Archive' : filterName}</h2>
           <div className="title-tools">
             {onNewGroup && <button className="icon-btn" title="New group" onClick={onNewGroup}><Ico d={ICONS.newGroup} /></button>}
+            {onBroadcast && <button className="icon-btn bc-btn" title="Broadcast: send the same message to several people" onClick={onBroadcast}><Ico d={MEGAPHONE} /></button>}
             <button className={`icon-btn ${showFilters || filtersActive ? 'on' : ''}`} title="Filters" onClick={() => setShowFilters(!showFilters)}><Ico d={ICONS.filter} /></button>
             <button className={`icon-btn ${showSearch || query ? 'on' : ''}`} title="Search (⌘F)" onClick={() => { setShowSearch(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Ico d={ICONS.search} /></button>
             <button className={`icon-btn ${selecting ? 'on' : ''}`} title="Select chats (⌘-click also works)"

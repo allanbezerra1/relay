@@ -17,6 +17,7 @@ import NetIcon from './NetIcon.jsx';
 import { useContextMenu } from './ContextMenu.jsx';
 import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
+import BroadcastDialog from './Broadcast.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
 
@@ -138,6 +139,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [switcher, setSwitcher] = useState(false);
   const [settings, setSettings] = useState(null); // null | section id
   const [newGroup, setNewGroup] = useState(false);
+  const [broadcast, setBroadcast] = useState(false);
   const [inboxToast, setInboxToast] = useState(null);
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
@@ -411,6 +413,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
         alert(`Couldn’t open a private chat: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`);
       }
     },
+    openRoom: (id) => { setQuery(''); setFilter('all'); setView('inbox'); openRoom(id); },
     markUnread: (r) => client.setRoomAccountData(r.id, 'm.marked_unread', { unread: true }),
     leave: async (r) => {
       if (!confirm(`Leave “${r.name}”? This can’t be undone from Relay.`)) return;
@@ -514,6 +517,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
           onSettings={() => setSettings('general')}
           onDropFiles={dropOnRoom}
           onNewGroup={isLocal ? () => setNewGroup(true) : null}
+          onBroadcast={() => setBroadcast(true)}
         />
       )}
 
@@ -552,6 +556,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             if (warning) { setInboxToast(warning); setTimeout(() => setInboxToast(null), 4000); }
           }} />
       )}
+      {broadcast && <BroadcastDialog client={client} rooms={rooms} onClose={() => setBroadcast(false)} />}
       {inboxToast && <div className="toast">{inboxToast}</div>}
     </div>
   );
