@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
+const applock = require('./applock.cjs'); // "Lock Relay with a password"
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
@@ -200,8 +201,9 @@ ipcMain.on('notify:clear', (_e, roomId) => {
   shownNotifications.delete(roomId);
 });
 
-ipcMain.on('notify', (_e, { title, body, roomId, silent }) => {
+ipcMain.on('notify', (_e, opts) => {
   if (!Notification.isSupported()) return;
+  const { title, body, roomId, silent } = applock.redactNotification(opts); // no previews while locked
   const n = new Notification({ title, body, silent: !!silent });
   if (!shownNotifications.has(roomId)) shownNotifications.set(roomId, new Set());
   shownNotifications.get(roomId).add(n);
@@ -512,6 +514,7 @@ if (!primary) {
 
 app.whenReady().then(() => {
   if (!primary) return;
+  applock.init({ mainWindow: () => win });
   installMediaAuth();
   installPermissions();
   if (!app.isPackaged && process.platform === 'darwin') {

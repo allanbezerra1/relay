@@ -14,6 +14,8 @@ export const DEFAULTS = {
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it
   autoUnarchive: true,
   showPreviews: true,     // last message under each chat in the list
+  privacyBlur: false,     // blur previews and messages while the window isn't focused
+  privacyBlurNames: false, // …and the names too
   // Notifications
   notifications: true,
   notifPreview: true,

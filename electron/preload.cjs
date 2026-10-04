@@ -25,6 +25,20 @@ contextBridge.exposeInMainWorld('relay', {
   setTheme: (theme) => ipcRenderer.send('app:setTheme', theme),
   version: () => ipcRenderer.invoke('app:version'),
   customSounds: () => ipcRenderer.invoke('app:customSounds'),
+  // App lock (electron/applock.cjs).
+  lock: {
+    state: () => ipcRenderer.invoke('lock:state'),
+    lock: () => ipcRenderer.invoke('lock:lock'),
+    unlock: (password) => ipcRenderer.invoke('lock:unlock', password),
+    fingerprint: () => ipcRenderer.invoke('lock:fingerprint'),
+    cancelFingerprint: () => ipcRenderer.invoke('lock:cancelFingerprint'),
+    enable: (password, minutes) => ipcRenderer.invoke('lock:enable', password, minutes),
+    change: (oldPassword, password) => ipcRenderer.invoke('lock:change', oldPassword, password),
+    disable: (password) => ipcRenderer.invoke('lock:disable', password),
+    setOptions: (opts) => ipcRenderer.invoke('lock:setOptions', opts),
+    activity: () => ipcRenderer.send('lock:activity'),
+    onState: (cb) => { const fn = (_e, s) => cb(s); ipcRenderer.on('lock:state', fn); return () => ipcRenderer.removeListener('lock:state', fn); },
+  },
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     check: () => ipcRenderer.invoke('update:check'),

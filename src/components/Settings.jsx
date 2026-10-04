@@ -9,6 +9,7 @@ import { NOTIFICATION_SOUNDS, notificationSound, uiSound } from '../sounds.js';
 import { player } from '../player.js';
 import VolumeSlider from './VolumeSlider.jsx';
 import { useUpdate } from '../update.js';
+import PrivacySettings from './PrivacySettings.jsx';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
@@ -242,6 +243,7 @@ function Privacy({ client, isLocal }) {
           : 'Chats are marked read in Relay only. Contacts won’t see that you read them.'}
           checked={p.readReceipts} onChange={(v) => setPref('readReceipts', v)} />
       </Group>
+      <PrivacySettings />
       {isLocal ? (
         <Group title="Where your data lives">
           <p className="pane-text">
