@@ -1,0 +1,87 @@
+/* ======================================================================
+   Rich link previews under messages (src/components/LinkPreview.jsx)
+   ====================================================================== */
+.link-preview {
+  --lp-bg: color-mix(in srgb, var(--text) 5%, transparent);
+  --lp-line: var(--glass-line-2, var(--line));
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
+  width: 340px; max-width: 100%; margin: 6px 0 4px; border-radius: 14px;
+  background: var(--lp-bg); border: 1px solid var(--lp-line);
+  color: inherit; text-decoration: none !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  transition: background 0.18s, border-color 0.18s, transform 0.25s cubic-bezier(.2, 1.3, .4, 1);
+  animation: lp-in 0.35s cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes lp-in { from { opacity: 0; transform: translateY(4px); } }
+:root[data-motion="off"] .link-preview { animation: none; }
+.link-preview::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px; z-index: 1;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+}
+.link-preview:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: color-mix(in srgb, var(--accent-2) 45%, transparent); }
+.link-preview.thumb { flex-direction: row; align-items: stretch; }
+
+.link-preview.mine { --lp-bg: rgba(255, 255, 255, 0.14); --lp-line: rgba(255, 255, 255, 0.2); color: #fff; }
+.link-preview.mine:hover { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.35); }
+.link-preview.mine::before { background: rgba(255, 255, 255, 0.85); }
+
+/* The picture is absolutely placed so its natural size never widens the bubble. */
+.lp-media { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; background: color-mix(in srgb, var(--text) 8%, transparent); }
+.lp-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s cubic-bezier(.2, .8, .2, 1); }
+.link-preview:hover .lp-media img { transform: scale(1.03); }
+.lp-media::after { content: ''; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(transparent, rgba(0, 0, 0, 0.28)); pointer-events: none; }
+.lp-play {
+  position: absolute; left: 50%; top: 50%; z-index: 1; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; padding-left: 3px;
+  background: rgba(10, 10, 14, 0.42); backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 10px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.25s cubic-bezier(.2, 1.4, .4, 1), background 0.2s;
+}
+.link-preview:hover .lp-play { transform: scale(1.1); }
+.lp-youtube .lp-play { background: rgba(255, 0, 0, 0.88); box-shadow: 0 10px 30px -6px rgba(255, 0, 0, 0.6); border-radius: 16px; width: 62px; height: 44px; margin: -22px 0 0 -31px; }
+.lp-instagram .lp-play { background: linear-gradient(45deg, rgba(254, 218, 117, 0.9), rgba(214, 41, 118, 0.9) 50%, rgba(79, 91, 213, 0.9)); }
+
+.lp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 11px 14px; }
+.lp-site { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.lp-favicon {
+  width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0; display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 800; color: #fff; line-height: 1;
+  background: linear-gradient(135deg, hsl(var(--h) 70% 58%), hsl(calc(var(--h) + 35) 70% 46%));
+  box-shadow: 0 2px 6px -2px hsl(var(--h) 70% 40%);
+}
+.lp-youtube .lp-favicon { background: #ff0000; box-shadow: 0 2px 6px -2px #ff0000; }
+.lp-x .lp-favicon { background: #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25); }
+.lp-instagram .lp-favicon { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%); }
+.lp-tiktok .lp-favicon { background: #111; box-shadow: -1.5px -1px 0 #25f4ee, 1.5px 1px 0 #fe2c55; }
+.lp-spotify .lp-favicon { background: #1db954; }
+.lp-site-name {
+  font-size: 11.5px; font-weight: 650; letter-spacing: 0.01em; color: var(--accent-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.link-preview.mine .lp-site-name { color: rgba(255, 255, 255, 0.85); }
+.lp-title {
+  font-size: 13.5px; font-weight: 650; line-height: 1.3; letter-spacing: -0.005em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lp-desc {
+  font-size: 12.5px; line-height: 1.4; color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.link-preview.mine .lp-desc { color: rgba(255, 255, 255, 0.78); }
+.lp-thumb { width: 84px; flex-shrink: 0; position: relative; overflow: hidden; background: color-mix(in srgb, var(--text) 8%, transparent); }
+.lp-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- v2: cleaner cards ---------- */
+.link-preview { border-radius: 16px; box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.6); }
+.link-preview::before { display: none; } /* no accent stripe */
+.lp-body { padding: 11px 13px 12px; gap: 4px; }
+.lp-title { font-size: 13.5px; font-weight: 650; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lp-desc { font-size: 12px; color: var(--text-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.link-preview.mine .lp-desc { color: rgba(255, 255, 255, 0.78); }
+.link-preview.mine .lp-site-name { color: rgba(255, 255, 255, 0.9); }
+.link-preview.thumb .lp-thumb { width: 92px; flex-shrink: 0; position: relative; overflow: hidden; }
+.link-preview.thumb.portrait .lp-thumb { width: 78px; }
+.lp-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* The card is the whole message: no text above it, a little air around it. */
+.link-preview.standalone { margin: 2px 0 4px; width: 320px; }
+.lp-fallback { display: inline-block; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

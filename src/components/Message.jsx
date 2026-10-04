@@ -11,6 +11,7 @@ import {
   effectiveContent, replyToId, stripReplyFallback, reactionsFor,
   senderName, previewText, formatBytes, memberAvatar, cleanName,
 } from '../matrix.js';
+import LinkPreview, { shortUrl } from './LinkPreview.jsx';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
@@ -66,7 +67,7 @@ function Mentions({ text, mentions, me }) {
 function Linkified({ text, mentions, me }) {
   const parts = text.split(URL_RE);
   return parts.map((p, i) =>
-    i % 2 ? <a key={i} href={p} target="_blank" rel="noreferrer">{p}</a> : <Mentions key={i} text={p} mentions={mentions} me={me} />,
+    i % 2 ? <a key={i} href={p} target="_blank" rel="noreferrer" title={p}>{shortUrl(p)}</a> : <Mentions key={i} text={p} mentions={mentions} me={me} />,
   );
 }
 
@@ -425,6 +426,8 @@ function Message({
     a.remove();
   };
   const link = (content.body || '').match(URL_RE)?.[0];
+  // A message that is only a link shows just the preview card (WhatsApp-style), not the long URL.
+  const linkOnly = !!link && content.msgtype === MsgType.Text && !replyId && stripReplyFallback(content.body || '').trim() === link;
 
   // Save / remove a sticker (or an image as a sticker) in "My stickers".
   const stickerItem = () => {
@@ -499,7 +502,10 @@ function Message({
             ev.isRedacted() && 'redacted',
           ].filter(Boolean).join(' ')}>
             {replyId && <ReplyQuote room={room} id={replyId} onOpen={onOpenThread && !selecting ? () => onOpenThread(ev) : null} />}
-            <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} />
+            {linkOnly
+              ? <LinkPreview client={client} room={room} url={link} ts={ev.getTs()} mine={mine} standalone />
+              : <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} />}
+            {link && copyable && !linkOnly && !ev.isRedacted() && <LinkPreview client={client} room={room} url={link} ts={ev.getTs()} mine={mine} />}
             {content['dev.relay.view_once'] && <span className="vo-tag"><span className="vo-circle small">1</span>View once</span>}
             {!imageOverlay && !isAudio && meta}
           </div>

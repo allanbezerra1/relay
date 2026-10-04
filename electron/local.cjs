@@ -141,7 +141,7 @@ async function installSynapse(progress) {
     await run(py, ['-m', 'venv', P.venv]);
   }
   progress('synapse', 'Installing the Matrix server (Synapse). This takes a minute or two…');
-  await streamProcess(P.python, ['-m', 'pip', 'install', '--disable-pip-version-check', '--upgrade', 'matrix-synapse'], {},
+  await streamProcess(P.python, ['-m', 'pip', 'install', '--disable-pip-version-check', '--upgrade', 'matrix-synapse[url-preview]'], {},
     (line) => { if (/^(Collecting|Downloading|Installing|Successfully)/.test(line)) progress('synapse', line.slice(0, 120)); });
 
   if (!fs.existsSync(P.hsConfig)) {
@@ -149,6 +149,17 @@ async function installSynapse(progress) {
     await run(P.python, ['-m', 'synapse.app.homeserver', '--server-name', SERVER_NAME, '--config-path', P.hsConfig,
       '--data-directory', P.synapse, '--generate-config', '--report-stats=no'], { cwd: P.synapse });
   }
+}
+
+async function ensureUrlPreviewDeps() {
+  const hasLxml = () => run(P.python, ['-c', 'import lxml']).then(() => true, () => false);
+  if (await hasLxml()) return true;
+  try {
+    await run(P.python, ['-m', 'pip', 'install', '-q', '--disable-pip-version-check', 'lxml'], { timeout: 180000 });
+  } catch (err) {
+    console.error('Installing lxml for link previews failed; previews stay off:', err.message);
+  }
+  return hasLxml();
 }
 
 async function configureSynapse() {
@@ -163,7 +174,18 @@ async function configureSynapse() {
   doc.set('suppress_key_server_warning', true);
   doc.set('enable_registration', false);
   doc.set('presence', { enabled: false });
-  doc.set('url_preview_enabled', false);
+  // Link previews (title, description and image under messages with a link). Synapse fetches
+  // the page itself; never let it reach this machine or the local network. Synapse refuses to
+  // start with previews on and no lxml, so only turn them on once it's there (older installs
+  // didn't include it: install it now, quietly, and fall back to no previews if that fails).
+  const previews = await ensureUrlPreviewDeps();
+  doc.set('url_preview_enabled', previews);
+  doc.set('url_preview_ip_range_blacklist', [
+    '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '100.64.0.0/10', '192.0.0.0/24',
+    '169.254.0.0/16', '192.88.99.0/24', '198.18.0.0/15', '192.0.2.0/24', '198.51.100.0/24', '203.0.113.0/24',
+    '224.0.0.0/4', '0.0.0.0/8', '::1/128', 'fe80::/10', 'fc00::/7', '2001:db8::/32', 'ff00::/8', 'fec0::/10',
+  ]);
+  doc.set('url_preview_accept_language', [app.getLocale(), 'en'].filter(Boolean));
   // Same limit as WhatsApp (and Beeper): the bridges read it from here, both directions.
   doc.set('max_upload_size', '2000M');
   doc.set('app_service_config_files', [

@@ -97,6 +97,8 @@ function General({ client, isLocal }) {
       <Group title="Chats">
         <Toggle label="Send with Enter" hint={p.enterToSend ? 'Shift+Enter adds a new line.' : 'Use ⌘+Enter to send.'} checked={p.enterToSend} onChange={(v) => setPref('enterToSend', v)} />
         <Toggle label="Show message previews in the chat list" checked={p.showPreviews} onChange={(v) => setPref('showPreviews', v)} />
+        <Toggle label="Link previews" hint="A card with the page’s title, description and picture under messages with a link. Your local server fetches the page; it never reaches your local network."
+          checked={p.linkPreviews !== false} onChange={(v) => setPref('linkPreviews', v)} />
         <Toggle label="Move archived chats back to the inbox on new messages" hint="Muted chats always stay archived." checked={p.autoUnarchive} onChange={(v) => setPref('autoUnarchive', v)} />
       </Group>
       {isLocal && (
