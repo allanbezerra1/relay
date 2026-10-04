@@ -12,6 +12,7 @@ import { useUpdate } from '../update.js';
 import { notice } from '../dialogs.jsx';
 import AutomationsSettings from './AutomationsSettings.jsx';
 import PresetPicker from './PresetPicker.jsx';
+import { DefaultWallpaperPicker } from './Wallpaper.jsx';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm-1 3v5.4l4.3 2.6 1-1.7-3.3-2V8h-2Z' },
@@ -217,6 +218,10 @@ function Appearance() {
       <Group title="Layout">
         <Choice label="Chat list density" value={p.density} onChange={(v) => setPref('density', v)} options={[['comfortable', 'Comfortable'], ['compact', 'Compact']]} />
         <Choice label="Text size" value={p.textSize} onChange={(v) => setPref('textSize', v)} options={[['sm', 'Small'], ['md', 'Default'], ['lg', 'Large']]} />
+      </Group>
+      <Group title="Chat wallpaper">
+        <p className="pane-text muted">Applies to every chat. To change just one, open that chat’s details.</p>
+        <DefaultWallpaperPicker />
       </Group>
     </>
   );

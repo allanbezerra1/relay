@@ -10,6 +10,7 @@ export const DEFAULTS = {
   accent: 'blue',         // see ACCENTS
   density: 'comfortable', // comfortable | compact
   textSize: 'md',         // sm | md | lg
+  wallpaper: { id: 'none', dim: 0, blur: 0 }, // default chat wallpaper, see wallpapers.js
   // Chats
   enterToSend: true,
   readReceipts: true,     // false = private receipts: chats get marked read here, contacts don't see it

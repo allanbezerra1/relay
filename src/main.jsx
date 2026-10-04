@@ -8,6 +8,7 @@ import './styles/automations.css';
 import './styles/sections.css';
 import './styles/theme-glass.css';
 import './styles/presets.css';
+import './styles/wallpapers.css';
 import { DialogHost } from './dialogs.jsx';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';

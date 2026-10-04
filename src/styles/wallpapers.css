@@ -1,0 +1,237 @@
+/* Glass tokens used below, for the Classic look (the glass styles define their own). */
+:root:not([data-style="glass"]) {
+  --glass: var(--panel); --glass-strong: var(--panel-2, var(--panel));
+  --glass-line: var(--line); --glass-line-2: var(--line);
+  --tint: color-mix(in srgb, var(--text) 5%, transparent); --tint-2: color-mix(in srgb, var(--text) 9%, transparent);
+  --grad: linear-gradient(135deg, var(--accent-2), var(--accent)); --glow: none;
+  --aurora-1: var(--accent); --aurora-2: #14b8a6; --aurora-3: #c026d3;
+  --base: var(--bg); --card-shadow: var(--shadow);
+}
+
+/* ======================================================================
+   Chat wallpapers, see src/wallpapers.js.
+   Layers: .wp-fill (gradient or your picture), .wp-pattern (an SVG tile used
+   as a mask over the accent color), .wp-shade (Dim + soft vignette).
+   ====================================================================== */
+
+/* SVG tiles, generated (black strokes; only their alpha matters, as masks). */
+:root {
+  --wp-doodle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(22 24) rotate(-12) scale(1)'%3E%3Cpath d='M0 6C-9-1-9-9-4-10c2-.4 3.5.8 4 2.5.5-1.7 2-2.9 4-2.5 5 1 5 9-4 16Z'/%3E%3C/g%3E%3Cg transform='translate(70 18) rotate(10) scale(1)'%3E%3Cpath d='M-3 7V-8l9-2v14'/%3E%3Ccircle cx='-6' cy='7' r='3'/%3E%3Ccircle cx='3' cy='4' r='3'/%3E%3C/g%3E%3Cg transform='translate(122 30) rotate(-8) scale(1)'%3E%3Crect x='-10' y='-6' width='20' height='14' rx='3'/%3E%3Ccircle cx='0' cy='1' r='4'/%3E%3Cpath d='M-4-6l2-3h4l2 3'/%3E%3C/g%3E%3Cg transform='translate(176 20) rotate(14) scale(1)'%3E%3Cpath d='m0-9 2.6 5.6 6.1.6-4.6 4.1 1.3 6L0 4.3-5.4 7.3l1.3-6-4.6-4.1 6.1-.6Z'/%3E%3C/g%3E%3Cg transform='translate(228 34) rotate(6) scale(1)'%3E%3Cpath d='M-8-4h13v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6Z'/%3E%3Cpath d='M5-2h2a3 3 0 0 1 0 6H5'/%3E%3Cpath d='M-4-9c0-2 2-2 2-4M1-9c0-2 2-2 2-4'/%3E%3C/g%3E%3Cg transform='translate(30 78) rotate(8) scale(1)'%3E%3Cpath d='M-9-7h18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H-2l-5 4v-4h-2a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z'/%3E%3Cpath d='M-5-1h10'/%3E%3C/g%3E%3Cg transform='translate(84 66) rotate(0) scale(0.8)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z'/%3E%3C/g%3E%3Cg transform='translate(140 82) rotate(0) scale(1)'%3E%3Ccircle r='4.5'/%3E%3Cpath d='M0-10v2.5M0 7.5V10M-10 0h2.5M7.5 0H10M-7-7l1.8 1.8M5.2 5.2 7 7M-7 7l1.8-1.8M5.2-5.2 7-7'/%3E%3C/g%3E%3Cg transform='translate(196 74) rotate(-14) scale(1)'%3E%3Cpath d='M-10 0 10-8 4 9 0 2Z'/%3E%3Cpath d='M0 2 10-8'/%3E%3C/g%3E%3Cg transform='translate(246 92) rotate(20) scale(1)'%3E%3Cpath d='M4-9a9 9 0 1 0 5 13A7 7 0 0 1 4-9Z'/%3E%3C/g%3E%3Cg transform='translate(20 134) rotate(-20) scale(1)'%3E%3Cpath d='M-8 8C-8-4 0-9 9-9 9 1 4 8-8 8Z'/%3E%3Cpath d='M-8 8 3-3'/%3E%3C/g%3E%3Cg transform='translate(76 120) rotate(6) scale(1)'%3E%3Ccircle r='9'/%3E%3Cpath d='M-4 2.5a5 5 0 0 0 8 0'/%3E%3Cpath d='M-3.5-3v.5M3.5-3v.5'/%3E%3C/g%3E%3Cg transform='translate(128 140) rotate(-6) scale(1)'%3E%3Crect x='-8' y='-3' width='16' height='11' rx='1.5'/%3E%3Cpath d='M-9-3h18v-4H-9ZM0-7V8M0-7c-2-4-7-4-6-1s6 1 6 1c2-4 7-4 6-1s-6 1-6 1'/%3E%3C/g%3E%3Cg transform='translate(168 118) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(186 138) rotate(12) scale(1)'%3E%3Cpath d='M0-10 9 8H-9Z'/%3E%3Ccircle cx='0' cy='0' r='1.5'/%3E%3Ccircle cx='-3' cy='5' r='1.2'/%3E%3Ccircle cx='3.5' cy='4.5' r='1.2'/%3E%3C/g%3E%3Cg transform='translate(238 148) rotate(-4) scale(1)'%3E%3Cpath d='M-7 6h13a5 5 0 0 0 0-10 7 7 0 0 0-13 1 4.5 4.5 0 0 0 0 9Z'/%3E%3C/g%3E%3Cg transform='translate(40 190) rotate(14) scale(1)'%3E%3Crect x='-6' y='-10' width='12' height='20' rx='3'/%3E%3Cpath d='M-2 7h4'/%3E%3C/g%3E%3Cg transform='translate(92 178) rotate(-10) scale(0.7)'%3E%3Cpath d='m0-9 2.6 5.6 6.1.6-4.6 4.1 1.3 6L0 4.3-5.4 7.3l1.3-6-4.6-4.1 6.1-.6Z'/%3E%3C/g%3E%3Cg transform='translate(136 200) rotate(10) scale(0.8)'%3E%3Cpath d='M0 6C-9-1-9-9-4-10c2-.4 3.5.8 4 2.5.5-1.7 2-2.9 4-2.5 5 1 5 9-4 16Z'/%3E%3C/g%3E%3Cg transform='translate(190 196) rotate(-8) scale(1)'%3E%3Cpath d='M-3 7V-8l9-2v14'/%3E%3Ccircle cx='-6' cy='7' r='3'/%3E%3Ccircle cx='3' cy='4' r='3'/%3E%3C/g%3E%3Cg transform='translate(240 210) rotate(-10) scale(1)'%3E%3Cpath d='M-9-7h18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H-2l-5 4v-4h-2a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z'/%3E%3Cpath d='M-5-1h10'/%3E%3C/g%3E%3Cg transform='translate(18 236) rotate(0) scale(0.7)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z'/%3E%3C/g%3E%3Cg transform='translate(78 238) rotate(10) scale(1)'%3E%3Crect x='-10' y='-6' width='20' height='14' rx='3'/%3E%3Ccircle cx='0' cy='1' r='4'/%3E%3Cpath d='M-4-6l2-3h4l2 3'/%3E%3C/g%3E%3Cg transform='translate(160 246) rotate(0) scale(0.8)'%3E%3Ccircle r='4.5'/%3E%3Cpath d='M0-10v2.5M0 7.5V10M-10 0h2.5M7.5 0H10M-7-7l1.8 1.8M5.2 5.2 7 7M-7 7l1.8-1.8M5.2-5.2 7-7'/%3E%3C/g%3E%3Cg transform='translate(112 100) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(214 112) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(60 152) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(214 250) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(120 254) rotate(0) scale(1)'%3E%3Ccircle r='1.4' fill='%23000' stroke='none'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --wp-waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120' viewBox='0 0 180 120'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.6'%3E%3Cpath d='M0 10 C 30 1, 60 1, 90 10 S 150 19, 180 10'/%3E%3Cpath d='M0 30 C 30 21, 60 21, 90 30 S 150 39, 180 30'/%3E%3Cpath d='M0 50 C 30 41, 60 41, 90 50 S 150 59, 180 50'/%3E%3Cpath d='M0 70 C 30 61, 60 61, 90 70 S 150 79, 180 70'/%3E%3Cpath d='M0 90 C 30 81, 60 81, 90 90 S 150 99, 180 90'/%3E%3Cpath d='M0 110 C 30 101, 60 101, 90 110 S 150 119, 180 110'/%3E%3C/g%3E%3C/svg%3E");
+  --wp-topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.3'%3E%3Cpath d='M57.142857142857146 80 C 57.142857142857146 69.02857142857142, 77.71428571428571 69.94285714285715, 82.85714285714286 79.08571428571429 S 72.57142857142857 91.42857142857143, 57.142857142857146 80 Z'/%3E%3Cpath d='M44.28571428571429 80 C 44.28571428571429 58.057142857142864, 85.42857142857143 59.885714285714286, 95.71428571428571 78.17142857142858 S 75.14285714285714 102.85714285714286, 44.28571428571429 80 Z'/%3E%3Cpath d='M31.42857142857143 80 C 31.42857142857143 47.08571428571429, 93.14285714285714 49.82857142857143, 108.57142857142857 77.25714285714285 S 77.71428571428571 114.28571428571428, 31.42857142857143 80 Z'/%3E%3Cpath d='M18.571428571428577 80 C 18.571428571428577 36.11428571428572, 100.85714285714286 39.77142857142857, 121.42857142857142 76.34285714285714 S 80.28571428571428 125.71428571428571, 18.571428571428577 80 Z'/%3E%3Cpath d='M5.714285714285708 80 C 5.714285714285708 25.142857142857146, 108.57142857142858 29.714285714285708, 134.28571428571428 75.42857142857143 S 82.85714285714286 137.14285714285714, 5.714285714285708 80 Z'/%3E%3Cpath d='M-7.142857142857139 80 C -7.142857142857139 14.171428571428578, 116.28571428571428 19.65714285714286, 147.14285714285714 74.51428571428572 S 85.42857142857143 148.57142857142856, -7.142857142857139 80 Z'/%3E%3Cpath d='M-20 80 C -20 3.200000000000003, 124 9.599999999999994, 160 73.6 S 88 160, -20 80 Z'/%3E%3Cpath d='M236.66666666666666 220 C 236.66666666666666 208, 258 209, 263.3333333333333 219 S 252.66666666666666 232.5, 236.66666666666666 220 Z'/%3E%3Cpath d='M223.33333333333334 220 C 223.33333333333334 196, 266 198, 276.6666666666667 218 S 255.33333333333334 245, 223.33333333333334 220 Z'/%3E%3Cpath d='M210 220 C 210 184, 274 187, 290 217 S 258 257.5, 210 220 Z'/%3E%3Cpath d='M196.66666666666669 220 C 196.66666666666669 172, 282 176, 303.3333333333333 216 S 260.6666666666667 270, 196.66666666666669 220 Z'/%3E%3Cpath d='M183.33333333333331 220 C 183.33333333333331 160, 290 165, 316.6666666666667 215 S 263.3333333333333 282.5, 183.33333333333331 220 Z'/%3E%3Cpath d='M170 220 C 170 148, 298 154, 330 214 S 266 295, 170 220 Z'/%3E%3Cpath d='M247.5 40 C 247.5 29.200000000000003, 267.5 30.1, 272.5 39.1 S 262.5 51.25, 247.5 40 Z'/%3E%3Cpath d='M235 40 C 235 18.400000000000002, 275 20.2, 285 38.2 S 265 62.5, 235 40 Z'/%3E%3Cpath d='M222.5 40 C 222.5 7.600000000000001, 282.5 10.299999999999997, 297.5 37.3 S 267.5 73.75, 222.5 40 Z'/%3E%3Cpath d='M210 40 C 210 -3.1999999999999957, 290 0.3999999999999986, 310 36.4 S 270 85, 210 40 Z'/%3E%3Cpath d='M46.5 260 C 46.5 248, 68.1 249, 73.5 259 S 62.7 272.5, 46.5 260 Z'/%3E%3Cpath d='M33 260 C 33 236, 76.2 238, 87 258 S 65.4 285, 33 260 Z'/%3E%3Cpath d='M19.5 260 C 19.5 224, 84.3 227, 100.5 257 S 68.1 297.5, 19.5 260 Z'/%3E%3Cpath d='M6 260 C 6 212, 92.4 216, 114 256 S 70.8 310, 6 260 Z'/%3E%3C/g%3E%3C/svg%3E");
+  --wp-stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg transform='translate(30 40) rotate(0) scale(1)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(120 20) rotate(0) scale(0.6)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(200 70) rotate(0) scale(0.9)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(60 140) rotate(0) scale(0.5)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(170 160) rotate(0) scale(1.1)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(100 220) rotate(0) scale(0.7)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(220 230) rotate(0) scale(0.5)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(20 210) rotate(0) scale(0.8)'%3E%3Cpath d='M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8Z' fill='%23000'/%3E%3C/g%3E%3Ccircle cx='80' cy='60' r='1.8'/%3E%3Ccircle cx='150' cy='110' r='1.2'/%3E%3Ccircle cx='230' cy='20' r='1.2'/%3E%3Ccircle cx='40' cy='100' r='1.8'/%3E%3Ccircle cx='190' cy='200' r='1.2'/%3E%3Ccircle cx='130' cy='250' r='1.2'/%3E%3Ccircle cx='250' cy='140' r='1.8'/%3E%3Ccircle cx='10' cy='260' r='1.2'/%3E%3Ccircle cx='100' cy='170' r='1.2'/%3E%3C/svg%3E");
+  --wp-confetti: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 30q6-8 12 0t12 0 12 0'/%3E%3Ccircle cx='150' cy='40' r='9'/%3E%3Cpath d='m90 90 12-20 12 20Z'/%3E%3Cpath d='M170 120q6-8 12 0t12 0'/%3E%3Ccircle cx='40' cy='150' r='5'/%3E%3Cpath d='M110 170h22M121 159v22'/%3E%3Cpath d='m180 190 10-10M190 190l-10-10'/%3E%3Cpath d='M30 200q6-8 12 0t12 0'/%3E%3Cpath d='m70 40 8 8M78 40l-8 8'/%3E%3Crect x='190' y='70' width='12' height='12' rx='2' transform='rotate(20 196 76)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- The layer behind a conversation ---------- */
+.chat-main:has(> .wallpaper) { isolation: isolate; }
+/* Classic paints the timeline itself; let the wallpaper show through. */
+.chat-main:has(> .wallpaper) .timeline { background: transparent; }
+.chat-main > .wallpaper {
+  position: absolute; inset: 0; z-index: -1; border-radius: 19px; overflow: hidden; pointer-events: none;
+  animation: wp-in 0.5s ease both;
+}
+@keyframes wp-in { from { opacity: 0; } }
+.wallpaper > :is(.wp-fill, .wp-pattern, .wp-shade) { position: absolute; inset: 0; display: block; }
+.wallpaper > .wp-fill, .wallpaper > .wp-pattern {
+  inset: calc(-2.5 * var(--wp-blur, 0px)); filter: blur(var(--wp-blur, 0px));
+}
+.wallpaper > .wp-fill { background-position: center; background-size: cover; background-repeat: no-repeat; }
+.wallpaper > .wp-shade {
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, calc(var(--wp-edge, 0.16))), transparent 22%, transparent 78%, rgba(0, 0, 0, calc(var(--wp-edge, 0.16)))),
+    rgba(0, 0, 0, var(--wp-dim, 0));
+}
+/* Patterns (drawn on the glass, in the accent color) don't need the vignette. */
+.wp-none, .wp-doodle, .wp-dots, .wp-grid, .wp-waves, .wp-topo, .wp-confetti { --wp-edge: 0; }
+
+/* Readability on top of a wallpaper: incoming bubbles and loose text get a frosted backing. */
+.chat-main:has(> .wallpaper) .msg.theirs .bubble:not(.media-bubble):not(.big-emoji) {
+  background: var(--glass-strong);
+  border-color: var(--glass-line-2);
+}
+.chat-main:has(> .wallpaper) .timeline-start,
+.chat-main:has(> .wallpaper) .typing {
+  align-self: center; background: var(--glass-strong); border: 1px solid var(--glass-line); border-radius: 18px;
+  padding: 14px 20px; box-shadow: var(--card-shadow);
+}
+.chat-main:has(> .wallpaper) .typing { align-self: flex-start; padding: 6px 12px; border-radius: 99px; }
+.chat-main:has(> .wallpaper) .msg-status { text-shadow: 0 1px 6px var(--base); }
+
+/* ---------- Built-in wallpapers ---------- */
+/* Patterns: an SVG tile used as a mask over the accent color. --wp-s scales them down in the picker. */
+.wp-doodle .wp-pattern, .wp-waves .wp-pattern, .wp-topo .wp-pattern, .wp-confetti .wp-pattern, .wp-stars .wp-pattern {
+  -webkit-mask-repeat: repeat; mask-repeat: repeat;
+}
+.wp-doodle .wp-pattern {
+  background: var(--accent); opacity: var(--wp-a, 0.13);
+  -webkit-mask-image: var(--wp-doodle); mask-image: var(--wp-doodle);
+  -webkit-mask-size: calc(260px * var(--wp-s, 1)); mask-size: calc(260px * var(--wp-s, 1));
+}
+.wp-waves .wp-pattern {
+  background: linear-gradient(160deg, var(--accent-2), var(--aurora-2)); opacity: var(--wp-a, 0.09);
+  -webkit-mask-image: var(--wp-waves); mask-image: var(--wp-waves);
+  -webkit-mask-size: calc(180px * var(--wp-s, 1)); mask-size: calc(180px * var(--wp-s, 1));
+}
+.wp-topo .wp-pattern {
+  background: linear-gradient(200deg, var(--accent-2), var(--aurora-3)); opacity: var(--wp-a, 0.2);
+  -webkit-mask-image: var(--wp-topo); mask-image: var(--wp-topo);
+  -webkit-mask-size: calc(320px * var(--wp-s, 1)); mask-size: calc(320px * var(--wp-s, 1));
+}
+.wp-confetti .wp-pattern {
+  background: linear-gradient(135deg, var(--accent-2), var(--aurora-2) 50%, var(--aurora-3)); opacity: var(--wp-a, 0.3);
+  -webkit-mask-image: var(--wp-confetti); mask-image: var(--wp-confetti);
+  -webkit-mask-size: calc(220px * var(--wp-s, 1)); mask-size: calc(220px * var(--wp-s, 1));
+}
+.wp-dots .wp-pattern {
+  opacity: var(--wp-a, 0.32);
+  background: radial-gradient(circle, var(--accent-2) calc(1.3px * var(--wp-s, 1) + 0.3px), transparent calc(1.6px * var(--wp-s, 1) + 0.4px)) 0 0 / calc(22px * var(--wp-s, 1)) calc(22px * var(--wp-s, 1));
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 40%, rgba(0, 0, 0, 0.35));
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 40%, rgba(0, 0, 0, 0.35));
+}
+.wp-grid .wp-pattern {
+  opacity: var(--wp-a, 0.16);
+  background:
+    linear-gradient(var(--accent-2) 1px, transparent 1px) 0 0 / calc(28px * var(--wp-s, 1)) calc(28px * var(--wp-s, 1)),
+    linear-gradient(90deg, var(--accent-2) 1px, transparent 1px) 0 0 / calc(28px * var(--wp-s, 1)) calc(28px * var(--wp-s, 1));
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 30%, transparent 95%);
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 30%, transparent 95%);
+}
+/* Mesh: soft color fields in the accent and the preset's aurora colors. */
+.wp-mesh .wp-fill {
+  background:
+    radial-gradient(60% 50% at 12% 18%, color-mix(in srgb, var(--accent) 60%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 88% 12%, color-mix(in srgb, var(--aurora-3) 50%, transparent), transparent 70%),
+    radial-gradient(55% 50% at 80% 85%, color-mix(in srgb, var(--aurora-2) 50%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 20% 90%, color-mix(in srgb, var(--accent-2) 45%, transparent), transparent 70%),
+    var(--base);
+}
+.wp-blobs .wp-fill { background: var(--base); }
+.wp-blobs .wp-pattern {
+  inset: -30%;
+  background:
+    radial-gradient(28% 24% at 25% 30%, var(--accent), transparent 70%),
+    radial-gradient(26% 22% at 75% 25%, var(--aurora-3), transparent 70%),
+    radial-gradient(30% 26% at 60% 75%, var(--aurora-2), transparent 70%);
+  filter: blur(calc(30px * var(--wp-s, 1) + var(--wp-blur, 0px))); opacity: 0.75;
+  animation: wp-blobs 28s ease-in-out infinite alternate;
+}
+@keyframes wp-blobs { to { transform: translate3d(6%, -4%, 0) rotate(14deg) scale(1.1); } }
+.wp-sunset .wp-fill { background: linear-gradient(170deg, #2b1055 0%, #7a1f5c 38%, #d53369 68%, #f6a75f 100%); }
+.wp-ocean .wp-fill { background: radial-gradient(120% 70% at 50% 0%, #1b6f8f 0%, transparent 60%), linear-gradient(180deg, #06263d 0%, #0b4f6c 50%, #0f766e 100%); }
+.wp-stars .wp-fill { background: radial-gradient(130% 80% at 50% 0%, #2a2f6b 0%, #11143a 45%, #05061a 100%); }
+.wp-stars .wp-pattern {
+  background: #fff; opacity: 0.42;
+  -webkit-mask-image: var(--wp-stars); mask-image: var(--wp-stars);
+  -webkit-mask-size: calc(260px * var(--wp-s, 1)); mask-size: calc(260px * var(--wp-s, 1));
+}
+
+/* Light mode: patterns a little stronger, fills in pastel. */
+:root[data-theme="light"] .wp-doodle { --wp-a: 0.17; }
+:root[data-theme="light"] .wp-waves { --wp-a: 0.12; }
+:root[data-theme="light"] .wp-topo { --wp-a: 0.24; }
+:root[data-theme="light"] .wp-dots { --wp-a: 0.4; }
+:root[data-theme="light"] .wp-grid { --wp-a: 0.2; }
+:root[data-theme="light"] .wp-blobs .wp-pattern { opacity: 0.5; }
+:root[data-theme="light"] .wp-mesh, :root[data-theme="light"] .wp-blobs,
+:root[data-theme="light"] .wp-sunset, :root[data-theme="light"] .wp-ocean, :root[data-theme="light"] .wp-stars { --wp-edge: 0.04; }
+:root[data-theme="light"] .wp-sunset .wp-fill { background: linear-gradient(170deg, #fde2e4 0%, #fbc4d4 35%, #f9c6a8 70%, #fde9c9 100%); }
+:root[data-theme="light"] .wp-ocean .wp-fill { background: radial-gradient(120% 70% at 50% 0%, #e0f7ff 0%, transparent 60%), linear-gradient(180deg, #c9eef9 0%, #a8e1ee 50%, #b7ecdf 100%); }
+:root[data-theme="light"] .wp-stars .wp-fill { background: linear-gradient(180deg, #c7cdf9 0%, #dcd0f5 50%, #f8d7e6 100%); }
+:root[data-theme="light"] .wp-stars .wp-pattern { opacity: 0.95; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .wp-doodle { --wp-a: 0.17; }
+  :root:not([data-theme="dark"]) .wp-waves { --wp-a: 0.12; }
+  :root:not([data-theme="dark"]) .wp-topo { --wp-a: 0.24; }
+  :root:not([data-theme="dark"]) .wp-dots { --wp-a: 0.4; }
+  :root:not([data-theme="dark"]) .wp-grid { --wp-a: 0.2; }
+  :root:not([data-theme="dark"]) .wp-blobs .wp-pattern { opacity: 0.5; }
+  :root:not([data-theme="dark"]) .wp-mesh, :root:not([data-theme="dark"]) .wp-blobs,
+  :root:not([data-theme="dark"]) .wp-sunset, :root:not([data-theme="dark"]) .wp-ocean, :root:not([data-theme="dark"]) .wp-stars { --wp-edge: 0.04; }
+  :root:not([data-theme="dark"]) .wp-sunset .wp-fill { background: linear-gradient(170deg, #fde2e4 0%, #fbc4d4 35%, #f9c6a8 70%, #fde9c9 100%); }
+  :root:not([data-theme="dark"]) .wp-ocean .wp-fill { background: radial-gradient(120% 70% at 50% 0%, #e0f7ff 0%, transparent 60%), linear-gradient(180deg, #c9eef9 0%, #a8e1ee 50%, #b7ecdf 100%); }
+  :root:not([data-theme="dark"]) .wp-stars .wp-fill { background: linear-gradient(180deg, #c7cdf9 0%, #dcd0f5 50%, #f8d7e6 100%); }
+  :root:not([data-theme="dark"]) .wp-stars .wp-pattern { opacity: 0.95; }
+}
+/* OLED keeps patterns subtle against pure black. */
+:root[data-preset="oled"] .wp-mesh .wp-fill, :root[data-preset="oled"] .wp-blobs .wp-fill { background-color: #000; }
+
+/* ---------- Picker ---------- */
+.wp-picker { padding: 12px 0 4px; }
+.wp-picker.compact { padding: 4px; }
+.wp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 12px 10px; }
+.wp-picker.compact .wp-tiles { grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
+.wp-tile {
+  position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none;
+  color: var(--text-2); font: inherit; font-size: 11.5px; font-weight: 550; text-align: center; cursor: pointer; min-width: 0;
+}
+.wp-tile.on { color: var(--text); font-weight: 700; }
+.wp-mini {
+  --wp-s: 0.42;
+  position: relative; display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: 13px; overflow: hidden; isolation: isolate;
+  background: var(--glass); color: var(--text-3);
+  box-shadow: inset 0 0 0 1px var(--glass-line-2), 0 8px 18px -14px rgba(0, 0, 0, 0.6);
+  transition: transform 0.22s cubic-bezier(.2, 1.3, .4, 1), box-shadow 0.2s;
+}
+.wp-mini.wallpaper > :is(.wp-fill, .wp-pattern, .wp-shade) { z-index: -1; }
+.wp-tile:hover .wp-mini { transform: translateY(-2px); }
+.wp-tile.on .wp-mini { box-shadow: 0 0 0 2px var(--accent-2), 0 0 0 5px var(--accent-soft), 0 10px 24px -12px var(--accent); }
+.wp-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+.wp-bubbles { position: absolute; left: 8%; right: 8%; bottom: 9%; display: flex; flex-direction: column; gap: 4px; z-index: 1; }
+.wp-bubbles b { display: block; height: 9px; width: 62%; border-radius: 6px 6px 6px 2px; background: var(--glass-strong); box-shadow: 0 0 0 0.5px var(--glass-line-2); }
+.wp-bubbles b.me { align-self: flex-end; width: 50%; border-radius: 6px 6px 2px 6px; background: var(--grad); box-shadow: none; }
+.wp-badge {
+  position: absolute; top: 7px; left: 7px; z-index: 1; font-size: 9.5px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 99px; background: var(--glass-strong); color: var(--text-2); box-shadow: 0 0 0 0.5px var(--glass-line-2);
+}
+.wp-add .wp-mini { background: var(--tint); box-shadow: inset 0 0 0 1.5px var(--glass-line-2); border: 0; }
+.wp-add .wp-mini { background-image: repeating-linear-gradient(135deg, transparent 0 7px, var(--tint) 7px 8px); }
+.wp-add:hover .wp-mini { color: var(--accent-2); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-2) 60%, transparent); }
+.wp-remove {
+  position: absolute; top: -5px; right: -5px; z-index: 2; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 10px; background: var(--glass-strong); color: var(--text-2); box-shadow: 0 0 0 1px var(--glass-line-2), 0 4px 10px -4px rgba(0, 0, 0, 0.5);
+  opacity: 0; transform: scale(0.8); transition: opacity 0.15s, transform 0.15s;
+}
+.wp-tile:hover .wp-remove { opacity: 1; transform: none; }
+.wp-remove:hover { background: #ef4444; color: #fff; }
+.wp-error { margin: 10px 2px 0; font-size: 12px; color: #f87171; }
+
+.wp-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: var(--tint); border: 1px solid var(--glass-line); }
+.wp-picker.compact .wp-sliders { grid-template-columns: 1fr; gap: 10px; }
+.wp-slider { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.wp-slider-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.wp-slider-head b { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+.wp-slider input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 3px; margin: 0; cursor: pointer;
+  background: linear-gradient(to right, var(--accent-2) 0, var(--accent) var(--pct), var(--tint-2) var(--pct));
+}
+.wp-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35); transition: transform 0.15s;
+}
+.wp-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.2); }
+
+/* Details panel row */
+.wp-card { padding: 0 !important; overflow: visible; }
+.wp-current {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px 10px 10px; border: 0; background: none;
+  color: var(--text); font: inherit; text-align: left; border-radius: 14px; cursor: pointer; transition: background 0.15s;
+}
+.wp-current:hover { background: var(--tint); }
+.wp-current > svg { color: var(--text-3); flex-shrink: 0; }
+.wp-current .wp-mini { width: 38px; flex-shrink: 0; border-radius: 9px; --wp-s: 0.25; }
+.wp-current-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wp-current-text b { font-size: 13.5px; font-weight: 650; }
+.wp-current-text small { font-size: 12px; color: var(--text-2); }
+.wp-card .wp-picker.compact { padding: 10px; }
+
+/* Motion off: the blobs hold still. */
+:root[data-motion="off"] .wallpaper, :root[data-motion="off"] .wallpaper * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .wallpaper, .wallpaper * { animation: none !important; } }
+
+/* Tiles are small: patterns need more ink to read. */
+.wp-picker .wp-mini:is(.wp-doodle, .wp-waves, .wp-grid), .wp-current .wp-mini:is(.wp-doodle, .wp-waves, .wp-grid) { --wp-a: 0.34; }
+.wp-picker .wp-mini.wp-topo, .wp-current .wp-mini.wp-topo { --wp-a: 0.4; }
+.wp-picker .wp-mini.wp-dots, .wp-current .wp-mini.wp-dots { --wp-a: 0.6; }
+.wp-picker .wp-mini.wp-confetti, .wp-current .wp-mini.wp-confetti { --wp-a: 0.55; }
+.wp-add .wp-label { white-space: normal; line-height: 1.25; }
