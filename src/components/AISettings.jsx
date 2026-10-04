@@ -3,6 +3,67 @@ import { useEffect, useState } from 'react';
 import { usePrefs, setPref } from '../prefs.js';
 import { aiPrefs, aiAvailable, aiStatus, aiErrorText } from '../ai.js';
 import { Spark } from './SummaryCard.jsx';
+import { askAvailable, updateIndex, useAskStatus } from '../ask.js';
+
+const ASK_KEYS = window.relay?.platform === 'darwin' ? '⌘⇧A' : 'Ctrl+Shift+A';
+
+/** Settings → AI → Ask Relay: on/off, embedding model, and the index on this computer. */
+function AskSettings({ client, p, status, off }) {
+  const st = useAskStatus();
+  const [embedModels, setEmbedModels] = useState(null); // null = not asked yet
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => {
+    if (!status?.ok) return;
+    window.relay.ask.models(status.host).then((r) => setEmbedModels(r.ok ? r.models : [])).catch(() => setEmbedModels([]));
+  }, [status?.ok, status?.host]); // eslint-disable-line react-hooks/exhaustive-deps
+  const disabled = off || !p.aiAsk;
+  const list = [...(embedModels || [])];
+  if (p.aiEmbedModel && !list.some((m) => m.id === p.aiEmbedModel)) list.unshift({ id: p.aiEmbedModel, name: embedModels ? `${p.aiEmbedModel} (not found)` : p.aiEmbedModel });
+  const first = embedModels?.[0]?.id;
+  const working = st?.reading || st?.busy;
+  const pct = st?.busy?.total ? Math.round((st.busy.done / st.busy.total) * 100) : null;
+
+  return (
+    <Group title="Ask Relay">
+      <Toggle label="Ask Relay" hint={`Ask anything about your chats and get an answer that cites the messages. Open it with ${ASK_KEYS} or from the chat list search.`}
+        checked={p.aiAsk} disabled={off} onChange={(v) => setPref('aiAsk', v)} />
+      <div className={`setting ${disabled ? 'disabled' : ''}`}>
+        <span className="setting-text">
+          <span className="setting-label">Embedding model</span>
+          <span className="setting-hint">
+            {embedModels && !embedModels.length
+              ? 'LM Studio has no embedding model, so Ask Relay searches by keywords. Download one in LM Studio (search for “embed”) to search by meaning.'
+              : <>{first && !p.aiEmbedModel ? <>Automatic uses <b>{first.split('/').pop()}</b>, the first embedding model in LM Studio. </> : null}
+                  Turns your messages into vectors so Ask Relay can search by meaning. Changing it rebuilds the index.</>}
+          </span>
+        </span>
+        <select className="ai-select" value={p.aiEmbedModel} disabled={disabled} onChange={(e) => { setPref('aiEmbedModel', e.target.value); updateIndex(client).catch(() => {}); }}>
+          <option value="">Automatic</option>
+          {list.map((m) => <option key={m.id} value={m.id}>{m.name}{m.loaded ? ' — loaded' : ''}</option>)}
+        </select>
+      </div>
+      <div className={`setting ${disabled ? 'disabled' : ''}`}>
+        <span className="setting-text">
+          <span className="setting-label">Index on this computer</span>
+          <span className="ask-settings-status">
+            {!st ? '…'
+              : st.reading ? `Reading your chats… ${st.reading.done} of ${st.reading.total}`
+              : st.busy ? `Indexing… ${pct}%`
+              : st.ready ? <><b>{st.messages.toLocaleString()}</b> messages from <b>{st.rooms}</b> {st.rooms === 1 ? 'chat' : 'chats'}
+                  {st.embedded < st.chunks ? ` · ${st.embedded ? `${Math.round((st.embedded / st.chunks) * 100)}% searchable by meaning` : 'keywords only'}` : ''}</>
+              : 'Not built yet. It builds on its own shortly after Relay starts.'}
+          </span>
+        </span>
+        <span className="ask-settings-actions">
+          <button className="ai-ghost" disabled={disabled || !!working} onClick={() => updateIndex(client).catch(() => {})}>Update now</button>
+          {confirmClear
+            ? <button className="ai-ghost" onClick={() => { window.relay.ask.clear(); setConfirmClear(false); }}>Delete index?</button>
+            : <button className="ai-ghost" disabled={!st?.ready || !!working} onClick={() => setConfirmClear(true)}>Delete</button>}
+        </span>
+      </div>
+    </Group>
+  );
+}
 
 // Same markup as Settings' own rows, so they look identical.
 function Toggle({ label, hint, checked, onChange, disabled }) {
@@ -26,7 +87,7 @@ const Group = ({ title, children }) => (
 
 const THRESHOLDS = [5, 10, 15, 30, 50];
 
-export default function AISettings() {
+export default function AISettings({ client }) {
   const p = aiPrefs(usePrefs());
   const [hostDraft, setHostDraft] = useState(p.aiHost === 'auto' ? '' : p.aiHost);
   const [status, setStatus] = useState(null); // null | 'testing' | result of ai:status
@@ -61,8 +122,8 @@ export default function AISettings() {
         <div>
           <b>Summaries from your local AI</b>
           <p>
-            Relay can use <a href="https://lmstudio.ai" target="_blank" rel="noreferrer">LM Studio</a> to answer “What did I miss?” and
-            to put together a daily digest of your busiest groups. Messages go straight to LM Studio, on this computer or one you
+            Relay can use <a href="https://lmstudio.ai" target="_blank" rel="noreferrer">LM Studio</a> to answer “What did I miss?”,
+            to put together a daily digest of your busiest groups, and to answer questions about your chats with Ask Relay. Messages go straight to LM Studio, on this computer or one you
             choose on your network. Nothing is sent to the cloud.
           </p>
         </div>
@@ -128,6 +189,8 @@ export default function AISettings() {
         <Toggle label="Daily digest" hint="A button in the chat list that summarizes, one by one, the groups with the most unread messages."
           checked={p.aiDigest} disabled={off} onChange={(v) => setPref('aiDigest', v)} />
       </Group>
+
+      {askAvailable() && client && <AskSettings client={client} p={p} status={status && status !== 'testing' ? status : null} off={off} />}
     </>
   );
 }

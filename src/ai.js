@@ -12,6 +12,8 @@ export const AI_DEFAULTS = {
   aiHost: 'auto',    // 'auto' tries LM Studio on this computer (localhost:1234, 127.0.0.1:1234)
   aiModel: '',       // '' = the first model LM Studio has loaded
   aiThreshold: 15,   // unread messages before the header button turns into a "Summarize N" pill
+  aiAsk: true,       // Ask Relay: search your chats by meaning and get cited answers (src/ask.js)
+  aiEmbedModel: '',  // '' = the first embedding model LM Studio lists
 };
 export const aiPrefs = (p = getPrefs()) => ({ ...AI_DEFAULTS, ...Object.fromEntries(Object.keys(AI_DEFAULTS).filter((k) => p[k] !== undefined).map((k) => [k, p[k]])) });
 export const aiAvailable = () => !!window.relay?.ai;
@@ -246,7 +248,7 @@ const LANGS = {
 const LANG_WORDS = Object.fromEntries(Object.entries(LANGS).map(([k, v]) => [k, new Set(v.words.split(' '))]));
 
 /** Best guess at the language most of the transcript is in, or null when unsure. */
-export function guessLanguage(text) {
+export function guessLanguage(text, minHits = 3) {
   const score = Object.fromEntries(Object.keys(LANGS).map((k) => [k, 0]));
   for (const line of text.split('\n')) {
     const body = line.slice(line.indexOf(': ') + 2).toLowerCase(); // drop "HH:MM Name:"
@@ -255,7 +257,7 @@ export function guessLanguage(text) {
     }
   }
   const [best, second] = Object.entries(score).sort((a, b) => b[1] - a[1]);
-  return best[1] >= 3 && best[1] >= second[1] * 1.5 ? best[0] : null;
+  return best[1] >= minHits && best[1] >= second[1] * 1.5 ? best[0] : null;
 }
 
 function language(convo) {

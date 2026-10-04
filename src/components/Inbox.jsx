@@ -22,6 +22,8 @@ import CommunitiesPanel from './CommunitiesPanel.jsx';
 import DigestPanel from './DigestPanel.jsx';
 import { Spark } from './SummaryCard.jsx';
 import { aiPrefs, useAiReady, requestSummary } from '../ai.js';
+import AskPanel from './AskPanel.jsx';
+import { useAskReady, useAskIndexer } from '../ask.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -144,6 +146,10 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   const [inboxToast, setInboxToast] = useState(null);
   const [digest, setDigest] = useState(false); // local AI daily digest
   const aiReady = useAiReady();
+  const askReady = useAskReady();
+  const [asking, setAsking] = useState(null); // Ask Relay: { q } while the panel is open
+  const [jump, setJump] = useState(null); // { roomId, eventId, at }: open a chat at a message
+  useAskIndexer(client);
 
   // WhatsApp favorite stickers (collected by the local bridge) → "My stickers".
   useEffect(() => {
@@ -355,7 +361,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
   useEffect(() => {
     const onKey = (e) => {
       const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setSwitcher((s) => !s); }
+      if (mod && e.shiftKey && e.key.toLowerCase() === 'a') { if (askReady) { e.preventDefault(); setAsking((a) => (a ? null : { q: '' })); } }
+      else if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setSwitcher((s) => !s); }
       else if (mod && e.key.toLowerCase() === 'f' && !e.shiftKey) { e.preventDefault(); searchRef.current?.focus(); }
       else if (mod && e.key === ',') { e.preventDefault(); setSettings('general'); }
       else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -371,7 +378,7 @@ export default function Inbox({ client, isLocal, onSignOut }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [visible, activeId, railItems, openRoom]);
+  }, [visible, activeId, railItems, openRoom, askReady]);
 
   // ----- Room actions -----
   const receiptType = () => (getPrefs().readReceipts ? ReceiptType.Read : ReceiptType.ReadPrivate);
@@ -523,11 +530,13 @@ export default function Inbox({ client, isLocal, onSignOut }) {
             <button className="icon-btn ai-digest-btn" title="Daily digest: catch up on your busiest groups" onClick={() => setDigest(true)}><Spark size={16} /></button>
           )}
           onSummarize={aiReady ? (id) => { openRoom(id); setTimeout(() => requestSummary(id), 60); } : null}
+          onAsk={askReady ? (q) => setAsking({ q }) : null}
         />
       )}
 
       {active ? (
         <ChatView key={active.id} client={client} info={active} focused={focused} actions={actions}
+          jumpTarget={jump?.roomId === active.id ? jump : null}
           droppedFiles={droppedFiles?.roomId === active.id ? droppedFiles.files : null} onDroppedTaken={() => setDroppedFiles(null)} />
       ) : (
         <div className="empty-chat">
@@ -551,6 +560,15 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       )}
       {digest && (
         <DigestPanel client={client} rooms={rooms} onOpen={(id) => { setDigest(false); openRoom(id); }} onClose={() => setDigest(false)} />
+      )}
+      {asking && (
+        <AskPanel client={client} initial={asking.q} onClose={() => setAsking(null)}
+          onJump={(roomId, eventId) => {
+            setAsking(null);
+            setQuery(''); setFilter('all'); setView('inbox'); setSettings(null);
+            openRoom(roomId);
+            setJump({ roomId, eventId, at: Date.now() });
+          }} />
       )}
       {settings && (
         <Settings client={client} isLocal={isLocal} section={settings} onSection={setSettings}

@@ -17,7 +17,7 @@ import SummaryCard, { SummarizeButton, useSummaryRequest } from './SummaryCard.j
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const MIN_EVENTS = 30;
 
-export default function ChatView({ client, info, focused, actions, droppedFiles, onDroppedTaken }) {
+export default function ChatView({ client, info, focused, actions, droppedFiles, onDroppedTaken, jumpTarget }) {
   const { room } = info;
   const me = client.getUserId();
   const net = networkInfo(info.network);
@@ -69,14 +69,34 @@ export default function ChatView({ client, info, focused, actions, droppedFiles,
   const toggleInfo = () => setInfoOpen((v) => { try { localStorage.setItem('relay.infoOpen', v ? '0' : '1'); } catch {} return !v; });
 
   // Scroll to a message (e.g. from Starred) and flash it.
-  const jumpTo = (eventId) => {
+  const jumpTo = (eventId, quiet) => {
     const el = scrollRef.current?.querySelector(`[data-event-id="${CSS.escape(eventId)}"]`);
-    if (!el) { alert('That message isn’t loaded. Scroll up to load older messages first.'); return; }
+    if (!el) { if (!quiet) alert('That message isn’t loaded. Scroll up to load older messages first.'); return false; }
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     el.classList.remove('flash');
     void el.offsetWidth;
     el.classList.add('flash');
+    return true;
   };
+  // From Ask Relay: load older history until the message is here, then scroll to it.
+  useEffect(() => {
+    if (!jumpTarget || jumpTarget.roomId !== room.roomId) return undefined;
+    const id = jumpTarget.eventId;
+    let cancelled = false;
+    (async () => {
+      const loaded = () => room.getLiveTimeline().getEvents().some((e) => e.getId() === id);
+      for (let page = 0; page < 10 && !cancelled && !loaded(); page++) {
+        try { if (!(await client.paginateEventTimeline(room.getLiveTimeline(), { backwards: true, limit: 100 }))) break; } catch { break; }
+      }
+      // The timeline renders on the next frame(s); give it a moment.
+      for (let i = 0; loaded() && i < 20 && !cancelled; i++) {
+        if (jumpTo(id, true)) return;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      if (!cancelled) showToast('That message is too far back to show here.');
+    })();
+    return () => { cancelled = true; };
+  }, [jumpTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dragging, setDragging] = useState(false);
   const [uploads, setUploads] = useState([]);
   const composerRef = useRef(null);

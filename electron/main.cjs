@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
 require('./ai.cjs').init(); // local AI summaries via LM Studio (ai:* IPC)
+require('./semantic.cjs').init(); // Ask Relay: search-by-meaning index of your chats (ask:* IPC)
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');

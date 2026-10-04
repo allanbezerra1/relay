@@ -415,7 +415,7 @@ export default function Settings({ client, isLocal, section = 'general', onSecti
           {current === 'notifications' && <Notifications />}
           {current === 'appearance' && <Appearance />}
           {current === 'privacy' && <Privacy client={client} isLocal={isLocal} />}
-          {current === 'ai' && <AISettings />}
+          {current === 'ai' && <AISettings client={client} />}
           {current === 'advanced' && <Advanced isLocal={isLocal} onSignOut={onSignOut} />}
           {current === 'about' && <About />}
         </div>
