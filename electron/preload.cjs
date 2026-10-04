@@ -65,6 +65,17 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener(`local:${channel}`, fn);
     },
   },
+  reminders: {
+    list: () => ipcRenderer.invoke('reminders:list'),
+    add: (item) => ipcRenderer.invoke('reminders:add', item),
+    update: (id, patch) => ipcRenderer.invoke('reminders:update', id, patch),
+    remove: (id) => ipcRenderer.invoke('reminders:remove', id),
+    onChange: (cb) => {
+      const fn = (_e, list) => cb(list);
+      ipcRenderer.on('reminders:changed', fn);
+      return () => ipcRenderer.removeListener('reminders:changed', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);

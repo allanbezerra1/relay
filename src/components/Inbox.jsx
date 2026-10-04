@@ -19,6 +19,7 @@ import { importWhatsAppFavorites } from '../stickers.js';
 import NewGroupDialog from './NewGroupDialog.jsx';
 import StatusPanel from './StatusPanel.jsx';
 import CommunitiesPanel from './CommunitiesPanel.jsx';
+import { onReminder } from '../reminders.js';
 
 export const TAG_PINNED = 'm.favourite';
 export const TAG_ARCHIVED = 'm.lowpriority';
@@ -343,7 +344,8 @@ export default function Inbox({ client, isLocal, onSignOut }) {
       setQuery('');
       openRoom(roomId);
     });
-    return () => { client.off(RoomEvent.Timeline, onTimeline); offClick(); };
+    const offReminder = onReminder('open-room', (roomId) => { setQuery(''); openRoom(roomId); });
+    return () => { client.off(RoomEvent.Timeline, onTimeline); offClick(); offReminder(); };
   }, [client, openRoom]);
 
   // ----- Keyboard shortcuts -----

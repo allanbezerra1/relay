@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
+import './styles/reminders.css';
+import { ReminderHost } from './components/Reminders.jsx';
 import { applyAppearance } from './prefs.js';
 import { loadSoundPack } from './sounds.js';
 
@@ -24,4 +26,4 @@ if (!window.relay) {
 document.documentElement.dataset.platform = window.relay.platform;
 applyAppearance();
 loadSoundPack();
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<><App /><ReminderHost /></>);
