@@ -1,0 +1,76 @@
+/* ======================================================================
+   Smart cards under messages (src/components/SmartCards.jsx)
+   ====================================================================== */
+.smart-cards { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; width: 320px; max-width: 100%; }
+.sc {
+  --sc-tint: var(--accent);
+  position: relative; display: flex; gap: 11px; padding: 11px 12px; border-radius: 16px; overflow: hidden;
+  background:
+    radial-gradient(130% 90% at 0% 0%, color-mix(in srgb, var(--sc-tint) 16%, transparent), transparent 65%),
+    color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc-tint) 22%, var(--line));
+  box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.6);
+  animation: sc-in 0.35s cubic-bezier(.2, .8, .2, 1) both;
+}
+.sc-pix { --sc-tint: #32bcad; }
+.sc-otp { --sc-tint: #7b5cff; }
+.sc-track { --sc-tint: #f59e0b; }
+.sc-when { --sc-tint: #5b8cff; }
+.sc-place { --sc-tint: #14b8a6; flex-direction: column; padding: 0; gap: 0; }
+.sc-row { display: flex; gap: 11px; padding: 11px 12px; }
+
+.sc-ico {
+  width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sc-tint) 75%, #fff), var(--sc-tint));
+  box-shadow: 0 6px 16px -6px var(--sc-tint), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.sc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sc-kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: color-mix(in srgb, var(--sc-tint) 75%, var(--text)); }
+.sc-warn { color: #f59e0b; text-transform: none; letter-spacing: 0; }
+.sc-title { font-size: 14px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.sc-title.mono, .sc-code { font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace; }
+.sc-big { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.sc-sub { font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sc-code { display: flex; gap: 5px; margin: 4px 0 2px; }
+.sc-code span {
+  min-width: 26px; height: 34px; display: grid; place-items: center; border-radius: 9px; font-size: 19px; font-weight: 700;
+  background: color-mix(in srgb, var(--text) 8%, transparent); border: 1px solid color-mix(in srgb, var(--sc-tint) 30%, transparent);
+}
+
+.sc-date {
+  width: 44px; height: 48px; flex-shrink: 0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--text) 92%, transparent); color: #111; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6);
+}
+.sc-date b { display: block; background: linear-gradient(135deg, #fb7185, #e11d48); color: #fff; font-size: 10px; letter-spacing: 0.06em; text-align: center; padding: 2px 0; }
+.sc-date span { flex: 1; display: grid; place-items: center; font-size: 20px; font-weight: 800; color: var(--bg, #111); }
+
+.sc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+.sc-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 10px; border: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 650; color: var(--text);
+  background: color-mix(in srgb, var(--text) 9%, transparent); transition: background 0.15s, transform 0.15s cubic-bezier(.2, 1.4, .4, 1);
+}
+.sc-btn:hover { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.sc-btn:active { transform: scale(0.96); }
+.sc-btn.sc-go { color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--sc-tint) 80%, #fff), var(--sc-tint)); box-shadow: 0 6px 16px -8px var(--sc-tint); }
+.sc-btn.sc-go:hover { filter: brightness(1.08); }
+.sc-btn.done { background: color-mix(in srgb, #22c55e 22%, transparent); color: #4ade80; box-shadow: none; }
+.sc-btn:disabled { cursor: default; }
+.sc-hint { font-size: 11px; color: var(--text-2); }
+
+.sc-map { position: relative; height: 130px; overflow: hidden; background: color-mix(in srgb, var(--text) 8%, transparent); }
+.sc-tiles { position: absolute; left: 0; top: 0; width: 768px; height: 768px; }
+.sc-tiles img { position: absolute; width: 256px; height: 256px; filter: saturate(0.85); }
+:root[data-theme="dark"] .sc-tiles img { filter: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.95); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sc-tiles img { filter: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.95); } }
+.sc-mappin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); color: #e11d48; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
+.sc-osm { position: absolute; right: 6px; bottom: 4px; font-size: 9px; color: rgba(255, 255, 255, 0.7); text-shadow: 0 1px 2px #000; }
+
+/* On my own (gradient) bubbles */
+.msg.mine .smart-cards .sc, .smart-cards.mine .sc { background: rgba(255, 255, 255, 0.13); border-color: rgba(255, 255, 255, 0.22); color: #fff; }
+.smart-cards.mine .sc-kicker, .smart-cards.mine .sc-sub, .smart-cards.mine .sc-hint { color: rgba(255, 255, 255, 0.82); }
+.smart-cards.mine .sc-btn { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.smart-cards.mine .sc-btn.sc-go { background: #fff; color: #222; }
+
+@keyframes sc-in { from { opacity: 0; transform: translateY(4px); } }

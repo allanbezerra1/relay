@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('relay', {
   setTheme: (theme) => ipcRenderer.send('app:setTheme', theme),
   version: () => ipcRenderer.invoke('app:version'),
   customSounds: () => ipcRenderer.invoke('app:customSounds'),
+  smart: { geocode: (q) => ipcRenderer.invoke('smart:geocode', q) },
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     check: () => ipcRenderer.invoke('update:check'),

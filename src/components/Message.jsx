@@ -5,6 +5,9 @@ import Avatar from './Avatar.jsx';
 import VoicePlayer, { fmt } from './VoicePlayer.jsx';
 import { player } from '../player.js';
 import EmojiPicker from './EmojiPicker.jsx';
+import SmartCards from './SmartCards.jsx';
+import { smartItems } from '../smart.js';
+import { getPrefs } from '../prefs.js';
 import { useMedia, copyImage } from '../media.js';
 import { saveSticker, removeSticker, findSaved } from '../stickers.js';
 import {
@@ -425,6 +428,13 @@ function Message({
     a.remove();
   };
   const link = (content.body || '').match(URL_RE)?.[0];
+  // Smart cards (Pix, codes, tracking, dates, addresses) under text messages.
+  const smartOn = copyable && !ev.isRedacted() && getPrefs().smartCards !== false;
+  const smartText = smartOn ? stripReplyFallback(content.body || '') : '';
+  // A Pix "copia e cola" is a wall of digits: the card shows it (and copies it), the text doesn't.
+  const pix = smartOn && content.msgtype === MsgType.Text ? smartItems(smartText, ev.getTs()).find((x) => x.type === 'pix') : null;
+  const shown = pix ? { ...content, body: (content.body || '').replace(pix.code, '').replace(/[\s:–-]+$/, '').trim(), formatted_body: undefined, format: undefined } : content;
+  const pixOnly = !!pix && !stripReplyFallback(shown.body).trim();
 
   // Save / remove a sticker (or an image as a sticker) in "My stickers".
   const stickerItem = () => {
@@ -499,7 +509,8 @@ function Message({
             ev.isRedacted() && 'redacted',
           ].filter(Boolean).join(' ')}>
             {replyId && <ReplyQuote room={room} id={replyId} onOpen={onOpenThread && !selecting ? () => onOpenThread(ev) : null} />}
-            <Body client={client} room={room} ev={ev} content={content} mine={mine} onOpenImage={onOpenImage} meta={meta} />
+            {!pixOnly && <Body client={client} room={room} ev={ev} content={shown} mine={mine} onOpenImage={onOpenImage} meta={meta} />}
+            {smartOn && <SmartCards text={smartText} ts={ev.getTs()} mine={mine} ctx={{ roomName: cleanName(room.name || '') }} />}
             {content['dev.relay.view_once'] && <span className="vo-tag"><span className="vo-circle small">1</span>View once</span>}
             {!imageOverlay && !isAudio && meta}
           </div>

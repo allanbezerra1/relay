@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
+require('./smart.cjs').init(); // smart cards: addresses on the map (smart:geocode)
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
