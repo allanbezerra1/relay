@@ -426,13 +426,23 @@ function Transcribe({ client, ev, content, mine }) {
   );
 }
 
+/** The quoted message as it was written (line breaks kept), or the list preview for media and the like. */
+function quoteText(room, target) {
+  const c = target.replacingEvent?.()?.getContent()?.['m.new_content'] || target.getContent() || {};
+  if (c.msgtype === MsgType.Text) {
+    const t = stripReplyFallback(c.body || '').trim();
+    if (t) return t;
+  }
+  return previewText(room, target, '').replace(/^[^:]+: /, '');
+}
+
 function ReplyQuote({ room, id, onOpen }) {
   const target = room.findEventById(id);
   return (
     <div className={`reply-quote ${onOpen ? 'clickable' : ''}`} onClick={onOpen ? (e) => { e.stopPropagation(); onOpen(); } : undefined}
       title={onOpen ? 'Show the whole thread' : undefined}>
       <span className="reply-name">{target ? senderName(room, target.getSender()) : 'Reply'}</span>
-      <span className="reply-text">{target ? previewText(room, target, '').replace(/^[^:]+: /, '') : 'Original message not loaded'}</span>
+      <span className="reply-text">{target ? quoteText(room, target) : 'Original message not loaded'}</span>
     </div>
   );
 }

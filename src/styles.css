@@ -282,7 +282,13 @@ button.ghost:hover { background: var(--hover); }
 }
 .msg.mine .reply-quote { border-left-color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.15); }
 .reply-name { font-weight: 700; }
-.reply-text { opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reply-text {
+  opacity: 0.85; white-space: pre-line; overflow-wrap: anywhere; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3;
+}
+/* A long quote never makes the bubble wider than the column (own messages hug the right edge). */
+.msg-row { max-width: 100%; min-width: 0; }
+.bubble { min-width: 0; max-width: 100%; }
 
 .media { border-radius: calc(var(--radius) - 3px); overflow: hidden; background: var(--panel-2); display: block; cursor: zoom-in; }
 .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
