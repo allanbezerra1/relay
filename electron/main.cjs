@@ -5,6 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const local = require('./local.cjs');
 const updater = require('./updater.cjs');
+require('./imports.cjs').init(); // old WhatsApp history from an iPhone backup or an exported .zip (import:* IPC)
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');

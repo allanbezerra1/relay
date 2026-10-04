@@ -65,6 +65,36 @@ contextBridge.exposeInMainWorld('relay', {
       return () => ipcRenderer.removeListener(`local:${channel}`, fn);
     },
   },
+  imports: {
+    info: () => ipcRenderer.invoke('import:info'),
+    finderBackups: () => ipcRenderer.invoke('import:finderBackups'),
+    openFullDiskAccess: () => ipcRenderer.invoke('import:openFullDiskAccess'),
+    devices: () => ipcRenderer.invoke('import:devices'),
+    pair: (udid) => ipcRenderer.invoke('import:pair', udid),
+    backup: (udid) => ipcRenderer.invoke('import:backup', udid),
+    cancelBackup: () => ipcRenderer.invoke('import:cancelBackup'),
+    deleteBackup: () => ipcRenderer.invoke('import:deleteBackup'),
+    scan: (opts) => ipcRenderer.invoke('import:scan', opts),
+    extract: (opts) => ipcRenderer.invoke('import:extract', opts),
+    zipPick: () => ipcRenderer.invoke('import:zipPick'),
+    zipImport: (opts) => ipcRenderer.invoke('import:zipImport', opts),
+    list: () => ipcRenderer.invoke('import:list'),
+    page: (opts) => ipcRenderer.invoke('import:page', opts),
+    media: (rel) => ipcRenderer.invoke('import:media', rel),
+    link: (key, roomId) => ipcRenderer.invoke('import:link', key, roomId),
+    remove: (key) => ipcRenderer.invoke('import:remove', key),
+    lidmap: () => ipcRenderer.invoke('import:lidmap'),
+    onProgress: (cb) => {
+      const fn = (_e, p) => cb(p);
+      ipcRenderer.on('import:progress', fn);
+      return () => ipcRenderer.removeListener('import:progress', fn);
+    },
+    onChanged: (cb) => {
+      const fn = (_e, l) => cb(l);
+      ipcRenderer.on('import:changed', fn);
+      return () => ipcRenderer.removeListener('import:changed', fn);
+    },
+  },
   onNotificationClick: (cb) => {
     const fn = (_e, roomId) => cb(roomId);
     ipcRenderer.on('notification:click', fn);
